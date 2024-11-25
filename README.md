@@ -47,7 +47,7 @@
 ### Quick Setup
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/chillguy-generator
+git clone https://github.com/kevinnadar22/chillguy-generator
 cd chillguy-generator
 
 # Install dependencies
