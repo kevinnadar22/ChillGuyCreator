@@ -20,7 +20,9 @@ export function VariantLayer({
     // Preload the image when variant changes
     const img = new Image();
     img.src = selectedVariant;
-    img.onload = onLoad;
+    if (onLoad) {
+      img.onload = () => onLoad();
+    }
   }, [selectedVariant, onLoad]);
 
   return (
