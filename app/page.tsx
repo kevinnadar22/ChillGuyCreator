@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Canvas } from './components/canvas/Canvas';
 import { ControlPanel } from './components/layout/ControlPanel';
 import { useTextBoxes } from './hooks/useTextBoxes';
@@ -21,6 +21,7 @@ export default function Home() {
   const [isTextDragging, setIsTextDragging] = useState(false);
   const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isVariantLoaded, setIsVariantLoaded] = useState(true);
 
   const textBoxState = useTextBoxes();
   const variantState = useVariant();
@@ -84,22 +85,104 @@ export default function Home() {
         setIsDownloading(true);
         textBoxState.setActiveTextId(null);
         
-        await new Promise(resolve => setTimeout(resolve, 0));
-        
+        // Create a new canvas with the same dimensions
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+
         const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
         if (!element) return;
 
-        const dataUrl = await toPng(element, {
-          quality: 1.0,
-          pixelRatio: 2,
+        // Set canvas size
+        const width = element.offsetWidth;
+        const height = element.offsetHeight;
+        canvas.width = width * 2;  // Double size for better quality
+        canvas.height = height * 2;
+        ctx.scale(2, 2);
+
+        // Draw background
+        if (bgType === 'solid') {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, width, height);
+        } else if (bgType === 'gradient') {
+          const gradient = ctx.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, bgColor);
+          gradient.addColorStop(0.35, bgColor);
+          gradient.addColorStop(1, secondaryBgColor);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+        } else if (bgType === 'image' && bgImage) {
+          const bgImg = new Image();
+          bgImg.src = bgImage;
+          await new Promise((resolve) => {
+            bgImg.onload = resolve;
+          });
+          ctx.drawImage(bgImg, 0, 0, width, height);
+        }
+
+        // Draw variant
+        const variantImg = new Image();
+        variantImg.src = variantState.selectedVariant;
+        await new Promise((resolve) => {
+          variantImg.onload = resolve;
         });
-        
+
+        // Calculate variant position and dimensions
+        const variantHeight = height * 0.5; // 50% of canvas height
+        const variantWidth = (variantImg.width / variantImg.height) * variantHeight;
+        const { x, y } = variantState.variantPosition;
+        const { rotation, scale, flipX, flipY, opacity } = variantState.variantTransform;
+
+        // Save context state
+        ctx.save();
+
+        // Set opacity
+        ctx.globalAlpha = opacity;
+
+        // Move to variant position and apply transformations
+        ctx.translate(x + variantWidth / 2, y + variantHeight / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
+        ctx.translate(-variantWidth / 2, -variantHeight / 2);
+
+        // Draw the variant
+        ctx.drawImage(variantImg, 0, 0, variantWidth, variantHeight);
+
+        // Restore context state
+        ctx.restore();
+
+        // Draw text layers
+        ctx.textBaseline = 'top';
+        textBoxState.textBoxes.forEach((textBox) => {
+          ctx.save();
+          
+          const { x, y } = textBox.position;
+          const { fontSize, fontFamily, color, rotation, scale, flipX, flipY, opacity } = textBox.style;
+
+          ctx.translate(x, y);
+          ctx.rotate((rotation * Math.PI) / 180);
+          ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
+          
+          ctx.font = `${fontSize}px ${fontFamily}`;
+          ctx.fillStyle = color;
+          ctx.globalAlpha = opacity;
+          
+          ctx.fillText(textBox.message, 0, 0);
+          
+          ctx.restore();
+        });
+
+        // Convert to data URL and download
+        const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.download = 'chillguy-image.png';
         link.href = dataUrl;
         link.click();
+        toast.success('Image downloaded successfully!');
+
       } catch (err) {
         console.error('Failed to download image:', err);
+        toast.error('Failed to download image. Please try again.');
       } finally {
         setIsDownloading(false);
       }
@@ -112,7 +195,7 @@ export default function Home() {
         setIsDownloading(true);
         textBoxState.setActiveTextId(null);
         
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
         if (!element) return;
@@ -120,14 +203,24 @@ export default function Home() {
         const dataUrl = await toPng(element, {
           quality: 1.0,
           pixelRatio: 2,
+          cacheBust: true,
+          skipAutoScale: true,
+          canvasWidth: 1200,
+          canvasHeight: 1200,
+          style: {
+            transform: 'none',
+            transformOrigin: 'center',
+          },
         });
 
         try {
-          await navigator.clipboard.writeText(dataUrl);
-          toast.success('Image URL copied to clipboard!');
+          const blob = await fetch(dataUrl).then(res => res.blob());
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          toast.success('Image copied to clipboard!');
         } catch (clipboardError) {
-          console.error('Clipboard error:', clipboardError);
-          // If clipboard fails, trigger download instead
+          // Fallback to download if clipboard fails
           const link = document.createElement('a');
           link.download = 'chillguy-image.png';
           link.href = dataUrl;
@@ -142,6 +235,10 @@ export default function Home() {
       }
     }
   };
+
+  useEffect(() => {
+    setIsVariantLoaded(false);
+  }, [variantState.selectedVariant]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -164,6 +261,7 @@ export default function Home() {
             onCanvasClick={handleCanvasClick}
             isDownloading={isDownloading}
             ref={canvasRef}
+            onVariantLoad={() => setIsVariantLoaded(true)}
           />
         </div>
 
@@ -201,6 +299,7 @@ export default function Home() {
               onCanvasClick={handleCanvasClick}
               isDownloading={isDownloading}
               ref={canvasRef}
+              onVariantLoad={() => setIsVariantLoaded(true)}
             />
           </div>
         </div>

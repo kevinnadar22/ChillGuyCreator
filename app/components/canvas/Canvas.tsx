@@ -18,6 +18,7 @@ interface CanvasProps {
   onVariantMouseDown: (e: React.MouseEvent) => void;
   onTextMouseDown: (e: React.MouseEvent, id: string) => void;
   onCanvasClick: (e: React.MouseEvent) => void;
+  onVariantLoad?: () => void;
 }
 
 export const Canvas = forwardRef(({
@@ -35,6 +36,7 @@ export const Canvas = forwardRef(({
   onVariantMouseDown,
   onTextMouseDown,
   onCanvasClick,
+  onVariantLoad,
   isDownloading = false,
 }: CanvasProps & { isDownloading?: boolean }, ref: ForwardedRef<HTMLDivElement>) => {
   const getBackgroundStyle = () => {
@@ -71,6 +73,7 @@ export const Canvas = forwardRef(({
         <div 
           ref={ref}
           className="relative bg-transparent h-full w-full touch-none"
+          style={{ contain: 'paint' }}
           onMouseMove={onMouseMove}
           onTouchMove={(e) => {
             e.preventDefault();
@@ -89,7 +92,10 @@ export const Canvas = forwardRef(({
         >
           <div 
             className="canvas-content relative h-full w-full"
-            style={getBackgroundStyle()}
+            style={{
+              ...getBackgroundStyle(),
+              transform: 'translateZ(0)',
+            }}
             onClick={onCanvasClick}
           >
             <VariantLayer
@@ -97,6 +103,7 @@ export const Canvas = forwardRef(({
               position={variantPosition}
               transform={variantTransform}
               onMouseDown={onVariantMouseDown}
+              onLoad={onVariantLoad}
             />
             <TextLayer
               textBoxes={textBoxes}
