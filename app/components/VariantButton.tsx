@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 interface VariantButtonProps {
   variant: string;
   isSelected: boolean;
@@ -12,10 +14,12 @@ export function VariantButton({ variant, isSelected, onClick }: VariantButtonPro
         isSelected ? 'border-blue-500' : 'border-gray-200'
       }`}
     >
-      <img 
+      <Image 
         src={variant} 
         alt="Character variant" 
-        className="w-full h-full object-cover" 
+        width={64}
+        height={64}
+        className="w-full h-full object-cover"
       />
     </button>
   );
