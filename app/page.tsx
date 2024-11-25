@@ -85,22 +85,22 @@ export default function Home() {
         setIsDownloading(true);
         textBoxState.setActiveTextId(null);
         
+        // Wait for any state updates to complete
         await new Promise(resolve => setTimeout(resolve, 100));
 
         const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
         if (!element) return;
 
-        // Create a canvas
+        // Create a canvas with fixed dimensions
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get canvas context');
 
-        // Set canvas size
-        const width = element.offsetWidth;
-        const height = element.offsetHeight;
-        canvas.width = width * 2;
-        canvas.height = height * 2;
-        ctx.scale(2, 2);
+        // Set fixed dimensions for better consistency
+        const width = 1200;
+        const height = 1200;
+        canvas.width = width;
+        canvas.height = height;
 
         // Draw background
         if (bgType === 'solid') {
@@ -116,10 +116,10 @@ export default function Home() {
         } else if (bgType === 'image' && bgImage) {
           const bgImg = new Image();
           bgImg.crossOrigin = 'anonymous';
-          bgImg.src = bgImage;
           await new Promise((resolve, reject) => {
             bgImg.onload = resolve;
             bgImg.onerror = reject;
+            bgImg.src = bgImage;
           });
           ctx.drawImage(bgImg, 0, 0, width, height);
         }
@@ -127,38 +127,43 @@ export default function Home() {
         // Draw variant
         const variantImg = new Image();
         variantImg.crossOrigin = 'anonymous';
-        variantImg.src = variantState.selectedVariant;
         await new Promise((resolve, reject) => {
           variantImg.onload = resolve;
           variantImg.onerror = reject;
+          variantImg.src = variantState.selectedVariant;
         });
 
-        // Calculate variant position and dimensions
+        // Calculate variant dimensions and position
         const variantHeight = height * 0.5;
         const variantWidth = (variantImg.width / variantImg.height) * variantHeight;
-        const { x, y } = variantState.variantPosition;
+        const scaleRatio = width / element.offsetWidth;
+        const x = variantState.variantPosition.x * scaleRatio;
+        const y = variantState.variantPosition.y * scaleRatio;
         const { rotation, scale, flipX, flipY, opacity } = variantState.variantTransform;
 
+        // Draw variant with transformations
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.translate(x + variantWidth / 2, y + variantHeight / 2);
+        ctx.translate(x + (variantWidth * scale) / 2, y + (variantHeight * scale) / 2);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
-        ctx.translate(-variantWidth / 2, -variantHeight / 2);
+        ctx.translate(-(variantWidth) / 2, -(variantHeight) / 2);
         ctx.drawImage(variantImg, 0, 0, variantWidth, variantHeight);
         ctx.restore();
 
         // Draw text layers
         textBoxState.textBoxes.forEach((textBox) => {
           ctx.save();
-          const { x, y } = textBox.position;
+          const scaledX = textBox.position.x * scaleRatio;
+          const scaledY = textBox.position.y * scaleRatio;
           const { fontSize, fontFamily, color, rotation, scale, flipX, flipY, opacity } = textBox.style;
           
-          ctx.translate(x, y);
+          ctx.translate(scaledX, scaledY);
           ctx.rotate((rotation * Math.PI) / 180);
           ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
           
-          ctx.font = `${fontSize}px ${fontFamily}`;
+          const scaledFontSize = fontSize * scaleRatio;
+          ctx.font = `${scaledFontSize}px ${fontFamily}`;
           ctx.fillStyle = color;
           ctx.globalAlpha = opacity;
           ctx.textBaseline = 'top';
@@ -167,37 +172,32 @@ export default function Home() {
           ctx.restore();
         });
 
-        // Get the data URL
-        const dataUrl = canvas.toDataURL('image/png');
+        // Convert to blob
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to create blob'));
+          }, 'image/png', 1.0);
+        });
 
-        // For iOS Safari
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          // Create a temporary link that opens in a new window
-          const newWindow = window.open();
-          if (newWindow) {
-            newWindow.document.write(`
-              <html>
-                <body style="margin:0;display:flex;justify-content:center;align-items:center;background:#f5f5f5;">
-                  <img src="${dataUrl}" />
-                  <p style="position:fixed;bottom:20px;text-align:center;width:100%;font-family:system-ui;">
-                    Press and hold the image to save
-                  </p>
-                </body>
-              </html>
-            `);
-            toast.success('Long press the image to save!');
-          } else {
-            // If popup is blocked, try direct download
-            window.location.href = dataUrl;
-          }
-        } else {
-          // For other browsers
-          const link = document.createElement('a');
-          link.download = 'chillguy-image.png';
-          link.href = dataUrl;
-          link.click();
-          toast.success('Image downloaded successfully!');
-        }
+        // Create download URL
+        const url = URL.createObjectURL(blob);
+        
+        // Create invisible download link
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        link.href = url;
+        link.download = 'chillguy-image.png';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+        }, 100);
+
+        toast.success('Image downloaded successfully!');
       } catch (err) {
         console.error('Failed to download image:', err);
         toast.error('Failed to download image. Please try again.');
