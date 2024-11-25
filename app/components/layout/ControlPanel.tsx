@@ -3,37 +3,7 @@ import { Download, Copy } from 'lucide-react';
 import { BackgroundControls } from '../controls/BackgroundControls';
 import { TextControls } from '../controls/TextControls';
 import { VariantControls } from '../controls/VariantControls';
-
-interface ControlPanelProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-  bgType: BackgroundType;
-  setBgType: (type: BackgroundType) => void;
-  bgColor: string;
-  setBgColor: (color: string) => void;
-  secondaryBgColor: string;
-  setSecondaryBgColor: (color: string) => void;
-  bgImage: string | null;
-  setBgImage: (image: string | null) => void;
-  // From textBoxState
-  textBoxes: any[];
-  activeTextId: string | null;
-  selectedFont: string;
-  setActiveTextId: (id: string | null) => void;
-  setSelectedFont: (font: string) => void;
-  addTextBox: () => void;
-  deleteTextBox: (id: string) => void;
-  updateTextBox: (id: string, updates: any) => void;
-  // From variantState
-  selectedVariant: string;
-  variantPosition: { x: number; y: number };
-  variantTransform: any;
-  setSelectedVariant: (variant: string) => void;
-  setVariantTransform: (transform: any) => void;
-  // Action handlers
-  onDownload: () => void;
-  onCopy: () => void;
-}
+import { ControlPanelProps } from '@/app/types/props';
 
 export function ControlPanel(props: ControlPanelProps) {
   const handleDownload = async () => {

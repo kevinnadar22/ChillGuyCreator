@@ -8,7 +8,6 @@ import { BackgroundType, TabType } from './types';
 import { Header } from './components/layout/Header';
 import { useVariant } from './hooks/useVariant';
 import { toPng } from 'html-to-image';
-import { writeText } from 'clipboard-polyfill';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -123,18 +122,15 @@ export default function Home() {
           pixelRatio: 2,
         });
 
-        // Create a temporary link element
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        
-        // Try to copy to clipboard
         try {
-          await navigator.clipboard.writeText(link.href);
+          await navigator.clipboard.writeText(dataUrl);
           toast.success('Image URL copied to clipboard!');
         } catch (clipboardError) {
           console.error('Clipboard error:', clipboardError);
           // If clipboard fails, trigger download instead
+          const link = document.createElement('a');
           link.download = 'chillguy-image.png';
+          link.href = dataUrl;
           link.click();
           toast.success('Image downloaded instead!');
         }
