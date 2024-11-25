@@ -19,37 +19,29 @@ export function ControlPanel(props: ControlPanelProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="w-full md:w-80 md:min-w-[320px] h-fit rounded-lg py-6 bg-white border">
-        {/* Tabs */}
-        <div className="flex border-b mb-4">
-          <button
-            onClick={() => props.setActiveTab('background')}
-            className={`flex-1 py-2 text-sm font-medium ${
-              props.activeTab === 'background' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'
-            }`}
-          >
-            Background
-          </button>
-          <button
-            onClick={() => props.setActiveTab('text')}
-            className={`flex-1 py-2 text-sm font-medium ${
-              props.activeTab === 'text' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'
-            }`}
-          >
-            Text
-          </button>
-          <button
-            onClick={() => props.setActiveTab('variant')}
-            className={`flex-1 py-2 text-sm font-medium ${
-              props.activeTab === 'variant' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'
-            }`}
-          >
-            Variant
-          </button>
+    <div className="w-full lg:w-[320px] flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="p-3">
+          <div className="flex gap-1.5">
+            {['background', 'text', 'variant'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => props.setActiveTab(tab as TabType)}
+                className={`flex-1 px-3 py-2.5 text-sm rounded-md border transition-colors ${
+                  props.activeTab === tab
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
 
-        <div className="px-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-6">
           {props.activeTab === 'background' && (
             <BackgroundControls {...props} />
           )}
@@ -64,22 +56,23 @@ export function ControlPanel(props: ControlPanelProps) {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="w-full md:w-80 md:min-w-[320px] flex gap-2">
-        <button
-          onClick={handleDownload}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border rounded-lg hover:bg-gray-50"
-        >
-          <Download className="w-4 h-4" />
-          Download
-        </button>
-        <button
-          onClick={handleCopy}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border rounded-lg hover:bg-gray-50"
-        >
-          <Copy className="w-4 h-4" />
-          Copy
-        </button>
+      <div className="sticky bottom-0 z-10 p-3 border-t border-gray-200 bg-white">
+        <div className="flex gap-2">
+          <button
+            onClick={props.onDownload}
+            className="action-button flex-1 h-12"
+          >
+            <Download size={18} />
+            Download
+          </button>
+          <button
+            onClick={props.onCopy}
+            className="action-button flex-1 h-12"
+          >
+            <Copy size={18} />
+            Copy
+          </button>
+        </div>
       </div>
     </div>
   );

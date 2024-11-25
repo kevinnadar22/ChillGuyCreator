@@ -107,3 +107,92 @@ select option {
 .range-slider::-moz-range-thumb:active {
   transform: scale(0.95);
 } 
+
+@layer utilities {
+  .canvas-wrapper {
+    @apply relative w-full aspect-square max-w-[600px] mx-auto;
+  }
+  
+  .control-panel {
+    @apply w-full lg:w-[320px] bg-white rounded-xl border border-gray-200 
+           flex flex-col overflow-hidden sticky top-4;
+  }
+  
+  .control-section {
+    @apply p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)];
+  }
+}
+
+/* Improve touch interactions on mobile */
+@media (max-width: 768px) {
+  .cursor-move {
+    cursor: default;
+  }
+  
+  input[type="range"] {
+    @apply h-6;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    @apply w-6 h-6;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    @apply w-6 h-6;
+  }
+  
+  .input-style {
+    @apply h-12;
+  }
+  
+  .action-button {
+    @apply h-12;
+  }
+} 
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  .input-style {
+    @apply h-12 text-base;
+  }
+  
+  .action-button {
+    @apply text-base py-3;
+  }
+  
+  /* Better range inputs for touch */
+  input[type="range"] {
+    @apply h-3;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    @apply w-6 h-6;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    @apply w-6 h-6;
+  }
+  
+  /* Better color picker for mobile */
+  input[type="color"] {
+    @apply h-12 w-12;
+  }
+  
+  /* Improved scrolling */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better button feedback */
+  button:active {
+    @apply transform scale-95 transition-transform duration-75;
+  }
+}
+
+/* Safe area padding for modern mobile devices */
+@supports(padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+} 

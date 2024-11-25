@@ -144,11 +144,30 @@ export default function Home() {
   };
 
   return (
-    <main className="overflow-y-auto">
+    <main className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="mt-8 2xl:mt-16 flex items-center justify-center min-h-[calc(100vh-120px)]">
-        <div className="flex flex-col-reverse md:flex-row items-start gap-8 md:gap-0 md:items-center md:max-w-[1056px] mx-auto">
+      <div className="p-4 flex flex-col gap-6">
+        <div className="lg:hidden w-full">
+          <Canvas
+            bgType={bgType}
+            bgColor={bgColor}
+            bgImage={bgImage}
+            secondaryBgColor={secondaryBgColor}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onVariantMouseDown={handleVariantMouseDown}
+            onTextMouseDown={handleTextMouseDown}
+            textBoxes={textBoxState.textBoxes}
+            activeTextId={textBoxState.activeTextId}
+            {...variantState}
+            onCanvasClick={handleCanvasClick}
+            isDownloading={isDownloading}
+            ref={canvasRef}
+          />
+        </div>
+
+        <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start gap-6">
           <ControlPanel
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -166,22 +185,24 @@ export default function Home() {
             onCopy={handleCopy}
           />
           
-          <Canvas
-            bgType={bgType}
-            bgColor={bgColor}
-            bgImage={bgImage}
-            secondaryBgColor={secondaryBgColor}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onVariantMouseDown={handleVariantMouseDown}
-            onTextMouseDown={handleTextMouseDown}
-            textBoxes={textBoxState.textBoxes}
-            activeTextId={textBoxState.activeTextId}
-            {...variantState}
-            onCanvasClick={handleCanvasClick}
-            isDownloading={isDownloading}
-            ref={canvasRef}
-          />
+          <div className="hidden lg:block lg:flex-1">
+            <Canvas
+              bgType={bgType}
+              bgColor={bgColor}
+              bgImage={bgImage}
+              secondaryBgColor={secondaryBgColor}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onVariantMouseDown={handleVariantMouseDown}
+              onTextMouseDown={handleTextMouseDown}
+              textBoxes={textBoxState.textBoxes}
+              activeTextId={textBoxState.activeTextId}
+              {...variantState}
+              onCanvasClick={handleCanvasClick}
+              isDownloading={isDownloading}
+              ref={canvasRef}
+            />
+          </div>
         </div>
       </div>
     </main>

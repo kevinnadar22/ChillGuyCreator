@@ -66,17 +66,29 @@ export const Canvas = forwardRef(({
   };
 
   return (
-    <div className="w-full md:flex-1 md:ml-6 flex flex-col items-center">
-      <div className="relative bg-transparent mx-auto h-[600px] w-[600px]">
+    <div className="w-full flex flex-col items-center">
+      <div className="relative bg-transparent w-full aspect-square max-w-[500px] mx-auto rounded-xl overflow-hidden shadow-lg">
         <div 
           ref={ref}
-          className="relative bg-transparent h-full w-full"
+          className="relative bg-transparent h-full w-full touch-none"
           onMouseMove={onMouseMove}
+          onTouchMove={(e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            if (touch) {
+              onMouseMove({
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                preventDefault: () => {},
+              } as React.MouseEvent);
+            }
+          }}
           onMouseUp={onMouseUp}
+          onTouchEnd={onMouseUp}
           onMouseLeave={onMouseUp}
         >
           <div 
-            className="canvas-content relative rounded-xl h-full w-full shadow-lg overflow-hidden"
+            className="canvas-content relative h-full w-full"
             style={getBackgroundStyle()}
             onClick={onCanvasClick}
           >
