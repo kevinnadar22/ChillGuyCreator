@@ -85,18 +85,20 @@ export default function Home() {
         setIsDownloading(true);
         textBoxState.setActiveTextId(null);
         
-        // Create a new canvas with the same dimensions
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas context');
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
         if (!element) return;
 
+        // Create a canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+
         // Set canvas size
         const width = element.offsetWidth;
         const height = element.offsetHeight;
-        canvas.width = width * 2;  // Double size for better quality
+        canvas.width = width * 2;
         canvas.height = height * 2;
         ctx.scale(2, 2);
 
@@ -113,52 +115,45 @@ export default function Home() {
           ctx.fillRect(0, 0, width, height);
         } else if (bgType === 'image' && bgImage) {
           const bgImg = new Image();
+          bgImg.crossOrigin = 'anonymous';
           bgImg.src = bgImage;
-          await new Promise((resolve) => {
+          await new Promise((resolve, reject) => {
             bgImg.onload = resolve;
+            bgImg.onerror = reject;
           });
           ctx.drawImage(bgImg, 0, 0, width, height);
         }
 
         // Draw variant
         const variantImg = new Image();
+        variantImg.crossOrigin = 'anonymous';
         variantImg.src = variantState.selectedVariant;
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           variantImg.onload = resolve;
+          variantImg.onerror = reject;
         });
 
         // Calculate variant position and dimensions
-        const variantHeight = height * 0.5; // 50% of canvas height
+        const variantHeight = height * 0.5;
         const variantWidth = (variantImg.width / variantImg.height) * variantHeight;
         const { x, y } = variantState.variantPosition;
         const { rotation, scale, flipX, flipY, opacity } = variantState.variantTransform;
 
-        // Save context state
         ctx.save();
-
-        // Set opacity
         ctx.globalAlpha = opacity;
-
-        // Move to variant position and apply transformations
         ctx.translate(x + variantWidth / 2, y + variantHeight / 2);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
         ctx.translate(-variantWidth / 2, -variantHeight / 2);
-
-        // Draw the variant
         ctx.drawImage(variantImg, 0, 0, variantWidth, variantHeight);
-
-        // Restore context state
         ctx.restore();
 
         // Draw text layers
-        ctx.textBaseline = 'top';
         textBoxState.textBoxes.forEach((textBox) => {
           ctx.save();
-          
           const { x, y } = textBox.position;
           const { fontSize, fontFamily, color, rotation, scale, flipX, flipY, opacity } = textBox.style;
-
+          
           ctx.translate(x, y);
           ctx.rotate((rotation * Math.PI) / 180);
           ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
@@ -166,20 +161,43 @@ export default function Home() {
           ctx.font = `${fontSize}px ${fontFamily}`;
           ctx.fillStyle = color;
           ctx.globalAlpha = opacity;
-          
+          ctx.textBaseline = 'top';
           ctx.fillText(textBox.message, 0, 0);
           
           ctx.restore();
         });
 
-        // Convert to data URL and download
+        // Get the data URL
         const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = 'chillguy-image.png';
-        link.href = dataUrl;
-        link.click();
-        toast.success('Image downloaded successfully!');
 
+        // For iOS Safari
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          // Create a temporary link that opens in a new window
+          const newWindow = window.open();
+          if (newWindow) {
+            newWindow.document.write(`
+              <html>
+                <body style="margin:0;display:flex;justify-content:center;align-items:center;background:#f5f5f5;">
+                  <img src="${dataUrl}" />
+                  <p style="position:fixed;bottom:20px;text-align:center;width:100%;font-family:system-ui;">
+                    Press and hold the image to save
+                  </p>
+                </body>
+              </html>
+            `);
+            toast.success('Long press the image to save!');
+          } else {
+            // If popup is blocked, try direct download
+            window.location.href = dataUrl;
+          }
+        } else {
+          // For other browsers
+          const link = document.createElement('a');
+          link.download = 'chillguy-image.png';
+          link.href = dataUrl;
+          link.click();
+          toast.success('Image downloaded successfully!');
+        }
       } catch (err) {
         console.error('Failed to download image:', err);
         toast.error('Failed to download image. Please try again.');
