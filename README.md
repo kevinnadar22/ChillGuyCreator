@@ -1,7 +1,8 @@
-
 <div align="center">
 
 # 🎨 ChillGuy Image Generator
+
+> Enhanced clone of [CreateChillGuy](http://createchillguy.vercel.app/) - Built entirely using [Cursor AI](https://cursor.sh/)
 
 <img src="public/variants/1.png" alt="ChillGuy Logo" width="200"/>
 
@@ -12,7 +13,7 @@
 
 ### 🎭 Custom Character Generation | 🎨 Rich Text Styling | ⚡ Real-time Preview
 
-*A powerful web application for creating custom ChillGuy meme images with advanced customization options.*
+*A powerful web application for creating custom ChillGuy meme images with advanced customization options. This project enhances the original CreateChillGuy with additional features and improvements, developed entirely using AI assistance.*
 
 [Features](#-features) •
 [Installation](#-installation) •
