@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "✨ Meme Magic | Create Your Perfect Chill Guy Meme",
+  title: "Create Perfect Chill Guy",
   description: "Create and customize your own chill guy memes with our easy-to-use meme generator. Add text, change backgrounds, and make it uniquely yours!",
   icons: {
     icon: [
