@@ -264,23 +264,44 @@ export default function Home() {
     textBoxes.forEach((textBox) => {
       ctx.save();
       
+      // Scale the position and font size
       const scaledTextX = textBox.position.x * scaleFactor;
       const scaledTextY = textBox.position.y * scaleFactor;
       const scaledFontSize = textBox.style.fontSize * scaleFactor;
       
+      // Set the font first so we can measure the text
       ctx.font = `${scaledFontSize}px ${getFontFamilyForDownload(textBox.style.fontFamily)}`;
-      ctx.fillStyle = textBox.style.color;
-      ctx.globalAlpha = textBox.style.opacity;
-      ctx.textBaseline = 'top';
       
-      ctx.translate(scaledTextX, scaledTextY);
+      // Measure text dimensions
+      const metrics = ctx.measureText(textBox.message);
+      const textWidth = metrics.width;
+      const textHeight = scaledFontSize;
+      
+      // Calculate the center point of the text
+      const centerX = scaledTextX + (textWidth / 2);
+      const centerY = scaledTextY + (textHeight / 2);
+      
+      // Move to the center point
+      ctx.translate(centerX, centerY);
+      
+      // Apply rotation
       ctx.rotate((textBox.style.rotation * Math.PI) / 180);
+      
+      // Apply scale and flip
       ctx.scale(
         textBox.style.scale * (textBox.style.flipX ? -1 : 1),
         textBox.style.scale * (textBox.style.flipY ? -1 : 1)
       );
       
+      // Set other text properties
+      ctx.fillStyle = textBox.style.color;
+      ctx.globalAlpha = textBox.style.opacity;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Draw the text at the origin (0, 0) since we've translated to the center
       ctx.fillText(textBox.message, 0, 0);
+      
       ctx.restore();
     });
   };
