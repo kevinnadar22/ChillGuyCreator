@@ -165,7 +165,32 @@ export default function Home() {
     } 
     else if (bgType === 'image' && bgImage) {
       const img = await loadImage(bgImage);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Calculate dimensions while maintaining aspect ratio
+      const imgAspectRatio = img.width / img.height;
+      const canvasAspectRatio = canvas.width / canvas.height;
+      
+      let drawWidth = canvas.width;
+      let drawHeight = canvas.height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imgAspectRatio > canvasAspectRatio) {
+        // Image is wider than canvas
+        drawHeight = canvas.width / imgAspectRatio;
+        offsetY = (canvas.height - drawHeight) / 2;
+      } else {
+        // Image is taller than canvas
+        drawWidth = canvas.height * imgAspectRatio;
+        offsetX = (canvas.width - drawWidth) / 2;
+      }
+
+      // Fill background with black to prevent transparency
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw image maintaining aspect ratio
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
     }
   };
 
