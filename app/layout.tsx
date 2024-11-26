@@ -9,6 +9,21 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Chill Guy Generator",
   description: "Generate your own chill guy meme",
+  icons: {
+    icon: [
+      {
+        url: "/variants/1.png",
+        type: "image/png",
+      },
+    ],
+    shortcut: ["/variants/1.png"],
+    apple: [
+      {
+        url: "/variants/1.png",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
