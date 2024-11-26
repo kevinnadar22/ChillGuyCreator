@@ -118,27 +118,49 @@ export default function Home() {
   };
 
   const handleDownload = async () => {
-    if (!canvasRef.current || !isVariantLoaded) return;
-    
-    try {
-      setIsDownloading(true);
-      const dataUrl = await toPng(canvasRef.current, {
-        quality: 1,
-        pixelRatio: 2,
-      });
-      
-      // Download image
-      const link = document.createElement('a');
-      link.download = 'meme.png';
-      link.href = dataUrl;
-      link.click();
-      
-      // Show only one toast
-      toast.success('Image downloaded successfully');
-    } catch (err) {
-      toast.error('Failed to download image');
-    } finally {
-      setIsDownloading(false);
+    if (canvasRef.current) {
+      try {
+        setIsDownloading(true);
+        textBoxState.setActiveTextId(null);
+        
+        // Wait for UI updates to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
+        if (!element) {
+          throw new Error('Canvas element not found');
+        }
+
+        // Create a canvas with fixed dimensions
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Could not get canvas context');
+        }
+
+        // Set fixed output size
+        const outputSize = 1200;
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+
+        // Draw background
+        await drawBackground(ctx, canvas, bgType, bgColor, secondaryBgColor, bgImage);
+
+        // Draw variant
+        await drawVariant(ctx, canvas, variantState);
+
+        // Draw text layers
+        drawTextLayers(ctx, canvas, textBoxState.textBoxes);
+
+        // Convert to blob and download
+        await downloadCanvas(canvas);
+
+      } catch (err) {
+        console.error('Failed to process image:', err);
+        toast.error('Failed to download image. Please try again.');
+      } finally {
+        setIsDownloading(false);
+      }
     }
   };
 
@@ -166,7 +188,7 @@ export default function Home() {
     else if (bgType === 'image' && bgImage) {
       const img = await loadImage(bgImage);
       
-      // Calculate dimensions while maintaining aspect ratio
+      // Calculate dimensions to maintain aspect ratio
       const imgAspectRatio = img.width / img.height;
       const canvasAspectRatio = canvas.width / canvas.height;
       
@@ -175,17 +197,18 @@ export default function Home() {
       let offsetX = 0;
       let offsetY = 0;
 
+      // If image is wider than canvas
       if (imgAspectRatio > canvasAspectRatio) {
-        // Image is wider than canvas
         drawHeight = canvas.width / imgAspectRatio;
         offsetY = (canvas.height - drawHeight) / 2;
-      } else {
-        // Image is taller than canvas
+      } 
+      // If image is taller than canvas
+      else {
         drawWidth = canvas.height * imgAspectRatio;
         offsetX = (canvas.width - drawWidth) / 2;
       }
 
-      // Fill background with black to prevent transparency
+      // Fill background with black to handle transparent images
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
