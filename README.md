@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎨 ChillGuy Image Generator
+# 🎨 ChillGuy Meme Generator
 
 > Enhanced clone of [CreateChillGuy](http://createchillguy.vercel.app/) - Built entirely using [Cursor AI](https://cursor.sh/)
 
