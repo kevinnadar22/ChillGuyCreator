@@ -12,7 +12,7 @@ export function Header() {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false 
+        hour12: true 
       }));
       setCurrentDate(now.toLocaleString('en-US', { 
         weekday: 'short',

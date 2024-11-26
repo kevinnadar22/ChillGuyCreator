@@ -118,50 +118,27 @@ export default function Home() {
   };
 
   const handleDownload = async () => {
-    if (canvasRef.current) {
-      try {
-        setIsDownloading(true);
-        textBoxState.setActiveTextId(null);
-        
-        // Wait for UI updates to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
-        if (!element) {
-          throw new Error('Canvas element not found');
-        }
-
-        // Create a canvas with fixed dimensions
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          throw new Error('Could not get canvas context');
-        }
-
-        // Set fixed output size
-        const outputSize = 1200;
-        canvas.width = outputSize;
-        canvas.height = outputSize;
-
-        // Draw background
-        await drawBackground(ctx, canvas, bgType, bgColor, secondaryBgColor, bgImage);
-
-        // Draw variant
-        await drawVariant(ctx, canvas, variantState);
-
-        // Draw text layers
-        drawTextLayers(ctx, canvas, textBoxState.textBoxes);
-
-        // Convert to blob and download
-        await downloadCanvas(canvas);
-        toast.success('Image downloaded successfully!');
-
-      } catch (err) {
-        console.error('Failed to process image:', err);
-        toast.error('Failed to download image. Please try again.');
-      } finally {
-        setIsDownloading(false);
-      }
+    if (!canvasRef.current || !isVariantLoaded) return;
+    
+    try {
+      setIsDownloading(true);
+      const dataUrl = await toPng(canvasRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+      });
+      
+      // Download image
+      const link = document.createElement('a');
+      link.download = 'meme.png';
+      link.href = dataUrl;
+      link.click();
+      
+      // Show only one toast
+      toast.success('Image downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to download image');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
