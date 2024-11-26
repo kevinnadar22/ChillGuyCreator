@@ -25,5 +25,4 @@ export interface ControlPanelProps {
   setSelectedVariant: (variant: string) => void;
   setVariantTransform: (transform: VariantTransform) => void;
   onDownload: () => void;
-  onCopy: () => void;
 } 

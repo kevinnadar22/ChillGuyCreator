@@ -67,6 +67,38 @@ export const Canvas = forwardRef(({
     };
   };
 
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling while dragging
+    const touch = e.touches[0];
+    if (touch) {
+      onMouseMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => {},
+      } as React.MouseEvent);
+    }
+  };
+
+  const handleVariantTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    onVariantMouseDown({
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      preventDefault: () => {},
+    } as React.MouseEvent);
+  };
+
+  const handleTextTouchStart = (e: React.TouchEvent, id: string) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    onTextMouseDown({
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      preventDefault: () => {},
+    } as React.MouseEvent, id);
+  };
+
   return (
     <div className="w-full flex flex-col items-center">
       <div className="relative bg-transparent w-full aspect-square max-w-[500px] mx-auto rounded-xl overflow-hidden shadow-lg">
@@ -74,18 +106,8 @@ export const Canvas = forwardRef(({
           ref={ref}
           className="relative bg-transparent h-full w-full touch-none"
           style={{ contain: 'paint' }}
-          onMouseMove={onMouseMove}
-          onTouchMove={(e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            if (touch) {
-              onMouseMove({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                preventDefault: () => {},
-              } as React.MouseEvent);
-            }
-          }}
+          onMouseMove={(e) => onMouseMove(e)}
+          onTouchMove={handleTouchMove}
           onMouseUp={onMouseUp}
           onTouchEnd={onMouseUp}
           onMouseLeave={onMouseUp}
@@ -95,6 +117,7 @@ export const Canvas = forwardRef(({
             style={{
               ...getBackgroundStyle(),
               transform: 'translateZ(0)',
+              touchAction: 'none',
             }}
             onClick={onCanvasClick}
           >
@@ -103,12 +126,14 @@ export const Canvas = forwardRef(({
               position={variantPosition}
               transform={variantTransform}
               onMouseDown={onVariantMouseDown}
+              onTouchStart={handleVariantTouchStart}
               onLoad={onVariantLoad}
             />
             <TextLayer
               textBoxes={textBoxes}
               activeTextId={activeTextId}
               onTextMouseDown={onTextMouseDown}
+              onTextTouchStart={handleTextTouchStart}
               isDownloading={isDownloading}
             />
           </div>

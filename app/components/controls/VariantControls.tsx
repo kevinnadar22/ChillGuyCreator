@@ -2,7 +2,7 @@ import { VariantTransform } from '@/app/types';
 import { RangeInput } from '../RangeInput';
 import { VariantButton } from '../VariantButton';
 
-const variants = ['/variants/1.png', '/variants/2.png'];
+const variants = ['/variants/1.png', '/variants/2.png', '/variants/3.png'];
 
 interface VariantControlsProps {
   selectedVariant: string;

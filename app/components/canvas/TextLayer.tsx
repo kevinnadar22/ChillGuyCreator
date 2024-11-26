@@ -5,6 +5,7 @@ interface TextLayerProps {
   textBoxes: TextBox[];
   activeTextId: string | null;
   onTextMouseDown: (e: React.MouseEvent, id: string) => void;
+  onTextTouchStart: (e: React.TouchEvent, id: string) => void;
   isDownloading?: boolean;
 }
 
@@ -12,6 +13,7 @@ export function TextLayer({
   textBoxes,
   activeTextId,
   onTextMouseDown,
+  onTextTouchStart,
   isDownloading = false,
 }: TextLayerProps) {
   return (
@@ -25,7 +27,7 @@ export function TextLayer({
           <div
             key={textBox.id}
             className={`absolute cursor-move ${
-              activeTextId === textBox.id && !isDownloading ? 'outline outline-2 outline-blue-500' : ''
+              activeTextId === textBox.id ? 'ring-2 ring-blue-500' : ''
             }`}
             style={{
               left: `${textBox.position.x}px`,
@@ -49,6 +51,7 @@ export function TextLayer({
               touchAction: 'none',
             }}
             onMouseDown={(e) => onTextMouseDown(e, textBox.id)}
+            onTouchStart={(e) => onTextTouchStart(e, textBox.id)}
             draggable={false}
           >
             {textBox.message || 'Click to edit'}

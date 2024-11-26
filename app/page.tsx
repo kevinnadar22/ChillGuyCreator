@@ -9,6 +9,18 @@ import { Header } from './components/layout/Header';
 import { useVariant } from './hooks/useVariant';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
+import { TextBox } from '@/app/types';
+import { getFontFamilyForDownload } from '@/app/utils/fonts';
+
+interface TouchLikeEvent {
+  clientX: number;
+  clientY: number;
+  touches?: { clientX: number; clientY: number }[];
+}
+
+const CANVAS_SIZE = 500; // Base canvas size
+const VARIANT_SIZE = 250; // Approximate size of variant (50% of canvas)
+const TEXT_SIZE = 24; // Default text size
 
 export default function Home() {
   const [bgColor, setBgColor] = useState('#295144');
@@ -29,16 +41,42 @@ export default function Home() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: TouchLikeEvent) => {
     if (isDragging) {
-      const newX = e.clientX - dragStart.x;
-      const newY = e.clientY - dragStart.y;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      // Calculate new position
+      let newX = clientX - dragStart.x;
+      let newY = clientY - dragStart.y;
+      
+      // Bound checking for variant
+      newX = Math.max(-VARIANT_SIZE/2, Math.min(CANVAS_SIZE - VARIANT_SIZE/2, newX));
+      newY = Math.max(-VARIANT_SIZE/2, Math.min(CANVAS_SIZE - VARIANT_SIZE/2, newY));
+      
       setVariantPosition({ x: newX, y: newY });
     }
     
     if (isTextDragging && textBoxState.activeTextId) {
-      const newX = e.clientX - textDragStart.x;
-      const newY = e.clientY - textDragStart.y;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      const activeTextBox = textBoxState.textBoxes.find(t => t.id === textBoxState.activeTextId);
+      if (!activeTextBox) return;
+
+      // Calculate new position
+      let newX = clientX - textDragStart.x;
+      let newY = clientY - textDragStart.y;
+      
+      // Calculate text bounds based on font size and scale
+      const textSize = activeTextBox.style.fontSize * activeTextBox.style.scale;
+      const textWidth = activeTextBox.message.length * (textSize * 0.6); // Approximate width
+      const textHeight = textSize;
+      
+      // Bound checking for text
+      newX = Math.max(0, Math.min(CANVAS_SIZE - textWidth, newX));
+      newY = Math.max(0, Math.min(CANVAS_SIZE - textHeight, newY));
+      
       textBoxState.updateTextBox(textBoxState.activeTextId, {
         position: { x: newX, y: newY }
       });
@@ -85,142 +123,41 @@ export default function Home() {
         setIsDownloading(true);
         textBoxState.setActiveTextId(null);
         
+        // Wait for UI updates to complete
         await new Promise(resolve => setTimeout(resolve, 100));
 
         const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
-        if (!element) return;
+        if (!element) {
+          throw new Error('Canvas element not found');
+        }
 
-        // Get the original element dimensions
-        const elementRect = element.getBoundingClientRect();
-        const originalWidth = elementRect.width;
-        const originalHeight = elementRect.height;
-
-        // Create a canvas with proportional dimensions
+        // Create a canvas with fixed dimensions
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas context');
+        if (!ctx) {
+          throw new Error('Could not get canvas context');
+        }
 
-        // Set dimensions while maintaining aspect ratio
+        // Set fixed output size
         const outputSize = 1200;
         canvas.width = outputSize;
         canvas.height = outputSize;
 
-        // Calculate scale factor
-        const scaleFactor = outputSize / originalWidth;
-
         // Draw background
-        if (bgType === 'solid') {
-          ctx.fillStyle = bgColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (bgType === 'gradient') {
-          const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-          gradient.addColorStop(0, bgColor);
-          gradient.addColorStop(0.35, bgColor);
-          gradient.addColorStop(1, secondaryBgColor);
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (bgType === 'image' && bgImage) {
-          const bgImg = new Image();
-          bgImg.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => {
-            bgImg.onload = resolve;
-            bgImg.onerror = reject;
-            bgImg.src = bgImage;
-          });
-          ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-        }
+        await drawBackground(ctx, canvas, bgType, bgColor, secondaryBgColor, bgImage);
 
         // Draw variant
-        const variantImg = new Image();
-        variantImg.crossOrigin = 'anonymous';
-        await new Promise((resolve, reject) => {
-          variantImg.onload = resolve;
-          variantImg.onerror = reject;
-          variantImg.src = variantState.selectedVariant;
-        });
-
-        // Calculate scaled variant dimensions
-        const variantHeight = canvas.height * 0.5; // 50% of canvas height
-        const variantAspectRatio = variantImg.width / variantImg.height;
-        const variantWidth = variantHeight * variantAspectRatio;
-
-        // Scale and position the variant
-        const scaledX = variantState.variantPosition.x * scaleFactor;
-        const scaledY = variantState.variantPosition.y * scaleFactor;
-        const { rotation, scale, flipX, flipY, opacity } = variantState.variantTransform;
-
-        // Draw variant with transformations
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        
-        // Center the transformation point
-        const centerX = scaledX + (variantWidth * scale) / 2;
-        const centerY = scaledY + (variantHeight * scale) / 2;
-        
-        ctx.translate(centerX, centerY);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
-        ctx.translate(-variantWidth / 2, -variantHeight / 2);
-        
-        ctx.drawImage(variantImg, 0, 0, variantWidth, variantHeight);
-        ctx.restore();
+        await drawVariant(ctx, canvas, variantState);
 
         // Draw text layers
-        textBoxState.textBoxes.forEach((textBox) => {
-          ctx.save();
-          
-          // Scale text position
-          const scaledTextX = textBox.position.x * scaleFactor;
-          const scaledTextY = textBox.position.y * scaleFactor;
-          const { fontSize, fontFamily, color, rotation, scale, flipX, flipY, opacity } = textBox.style;
-          
-          // Scale font size
-          const scaledFontSize = fontSize * scaleFactor;
-          
-          // Center the text transformation
-          ctx.translate(scaledTextX, scaledTextY);
-          ctx.rotate((rotation * Math.PI) / 180);
-          ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
-          
-          ctx.font = `${scaledFontSize}px ${fontFamily}`;
-          ctx.fillStyle = color;
-          ctx.globalAlpha = opacity;
-          ctx.textBaseline = 'top';
-          ctx.fillText(textBox.message, 0, 0);
-          
-          ctx.restore();
-        });
+        drawTextLayers(ctx, canvas, textBoxState.textBoxes);
 
-        // Convert to blob with maximum quality
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (blob) => {
-              if (blob) resolve(blob);
-              else reject(new Error('Failed to create blob'));
-            },
-            'image/png',
-            1.0
-          );
-        });
-
-        // Create and trigger download
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.style.display = 'none';
-        link.href = url;
-        link.download = 'chillguy-image.png';
-        document.body.appendChild(link);
-        link.click();
-        
-        // Clean up
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-          document.body.removeChild(link);
-        }, 100);
-
+        // Convert to blob and download
+        await downloadCanvas(canvas);
         toast.success('Image downloaded successfully!');
+
       } catch (err) {
-        console.error('Failed to download image:', err);
+        console.error('Failed to process image:', err);
         toast.error('Failed to download image. Please try again.');
       } finally {
         setIsDownloading(false);
@@ -228,49 +165,164 @@ export default function Home() {
     }
   };
 
-  const handleCopy = async () => {
-    if (canvasRef.current) {
-      try {
-        setIsDownloading(true);
-        textBoxState.setActiveTextId(null);
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
+  // Helper functions to break down the complex logic
+  const drawBackground = async (
+    ctx: CanvasRenderingContext2D, 
+    canvas: HTMLCanvasElement,
+    bgType: BackgroundType,
+    bgColor: string,
+    secondaryBgColor: string,
+    bgImage: string | null
+  ) => {
+    if (bgType === 'solid') {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } 
+    else if (bgType === 'gradient') {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, bgColor);
+      gradient.addColorStop(0.35, bgColor);
+      gradient.addColorStop(1, secondaryBgColor);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } 
+    else if (bgType === 'image' && bgImage) {
+      const img = await loadImage(bgImage);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+  };
 
-        const element = canvasRef.current.querySelector('.canvas-content') as HTMLElement;
-        if (!element) return;
+  const drawVariant = async (
+    ctx: CanvasRenderingContext2D, 
+    canvas: HTMLCanvasElement,
+    variantState: ReturnType<typeof useVariant>
+  ) => {
+    const variantImg = await loadImage(variantState.selectedVariant);
+    
+    // Calculate dimensions
+    const variantHeight = canvas.height * 0.5;
+    const variantAspectRatio = variantImg.width / variantImg.height;
+    const variantWidth = variantHeight * variantAspectRatio;
 
-        const dataUrl = await toPng(element, {
-          quality: 1.0,
-          pixelRatio: 2,
-          cacheBust: true,
-          skipAutoScale: true,
-          canvasWidth: 1200,
-          canvasHeight: 1200,
-          style: {
-            transform: 'none',
-            transformOrigin: 'center',
-          },
+    // Calculate position relative to canvas size
+    const scaleFactor = canvas.width / 500; // 500 is the base canvas size in the UI
+    const scaledX = variantState.variantPosition.x * scaleFactor;
+    const scaledY = variantState.variantPosition.y * scaleFactor;
+
+    // Apply transformations
+    const { rotation, scale, flipX, flipY, opacity } = variantState.variantTransform;
+    
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.translate(scaledX + (variantWidth * scale) / 2, scaledY + (variantHeight * scale) / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.scale(scale * (flipX ? -1 : 1), scale * (flipY ? -1 : 1));
+    
+    ctx.drawImage(
+      variantImg,
+      -variantWidth / 2,
+      -variantHeight / 2,
+      variantWidth,
+      variantHeight
+    );
+    
+    ctx.restore();
+  };
+
+  const drawTextLayers = (
+    ctx: CanvasRenderingContext2D, 
+    canvas: HTMLCanvasElement,
+    textBoxes: TextBox[]
+  ) => {
+    const scaleFactor = canvas.width / 500; // 500 is the base canvas size in the UI
+
+    textBoxes.forEach((textBox) => {
+      ctx.save();
+      
+      const scaledTextX = textBox.position.x * scaleFactor;
+      const scaledTextY = textBox.position.y * scaleFactor;
+      const scaledFontSize = textBox.style.fontSize * scaleFactor;
+      
+      ctx.font = `${scaledFontSize}px ${getFontFamilyForDownload(textBox.style.fontFamily)}`;
+      ctx.fillStyle = textBox.style.color;
+      ctx.globalAlpha = textBox.style.opacity;
+      ctx.textBaseline = 'top';
+      
+      ctx.translate(scaledTextX, scaledTextY);
+      ctx.rotate((textBox.style.rotation * Math.PI) / 180);
+      ctx.scale(
+        textBox.style.scale * (textBox.style.flipX ? -1 : 1),
+        textBox.style.scale * (textBox.style.flipY ? -1 : 1)
+      );
+      
+      ctx.fillText(textBox.message, 0, 0);
+      ctx.restore();
+    });
+  };
+
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+      img.src = src;
+    });
+  };
+
+  const downloadCanvas = async (canvas: HTMLCanvasElement) => {
+    try {
+      // Check if running in a WebView/third-party browser
+      const isWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Version)/i.test(navigator.userAgent) 
+        || /.*Android.*Version\/[0-9].[0-9]/.test(navigator.userAgent)
+        || /wv|WebView/i.test(navigator.userAgent)
+        || window !== window.parent;
+
+      if (isWebView) {
+        // Use direct data URL for WebViews and in-app browsers
+        const dataUrl = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'chillguy-image.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Use Blob approach for regular browsers
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+            'image/png',
+            1.0
+          );
         });
 
-        try {
-          const blob = await fetch(dataUrl).then(res => res.blob());
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          toast.success('Image copied to clipboard!');
-        } catch (clipboardError) {
-          // Fallback to download if clipboard fails
-          const link = document.createElement('a');
-          link.download = 'chillguy-image.png';
-          link.href = dataUrl;
-          link.click();
-          toast.success('Image downloaded instead!');
-        }
-      } catch (err) {
-        console.error('Failed to process image:', err);
-        toast.error('Failed to copy image. Please try downloading instead.');
-      } finally {
-        setIsDownloading(false);
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        link.href = blobUrl;
+        link.download = 'chillguy-image.png';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(link);
+        }, 100);
+      }
+
+      toast.success('Image downloaded successfully!');
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast.error('Failed to download image. Please try again.');
+      
+      // Final fallback: open in new tab
+      try {
+        const dataUrl = canvas.toDataURL('image/png', 1.0);
+        window.open(dataUrl, '_blank');
+      } catch (fallbackErr) {
+        console.error('Fallback download failed:', fallbackErr);
       }
     }
   };
@@ -319,7 +371,6 @@ export default function Home() {
             {...textBoxState}
             {...variantState}
             onDownload={handleDownload}
-            onCopy={handleCopy}
           />
           
           <div className="hidden lg:block lg:flex-1">

@@ -1,23 +1,11 @@
 import { BackgroundType, TabType } from '@/app/types';
-import { Download, Copy } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { BackgroundControls } from '../controls/BackgroundControls';
 import { TextControls } from '../controls/TextControls';
 import { VariantControls } from '../controls/VariantControls';
 import { ControlPanelProps } from '@/app/types/props';
 
 export function ControlPanel(props: ControlPanelProps) {
-  const handleDownload = async () => {
-    if (props.onDownload) {
-      await props.onDownload();
-    }
-  };
-
-  const handleCopy = async () => {
-    if (props.onCopy) {
-      await props.onCopy();
-    }
-  };
-
   return (
     <div className="w-full lg:w-[320px] flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
@@ -57,22 +45,13 @@ export function ControlPanel(props: ControlPanelProps) {
       </div>
 
       <div className="sticky bottom-0 z-10 p-3 border-t border-gray-200 bg-white">
-        <div className="flex gap-2">
-          <button
-            onClick={props.onDownload}
-            className="action-button flex-1 h-12"
-          >
-            <Download size={18} />
-            Download
-          </button>
-          <button
-            onClick={props.onCopy}
-            className="action-button flex-1 h-12"
-          >
-            <Copy size={18} />
-            Copy
-          </button>
-        </div>
+        <button
+          onClick={props.onDownload}
+          className="action-button w-full h-12"
+        >
+          <Download size={18} />
+          Download
+        </button>
       </div>
     </div>
   );

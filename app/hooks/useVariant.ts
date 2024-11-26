@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { VariantTransform } from '../types';
 
-const variants = ['/variants/1.png', '/variants/2.png'];
+const variants = ['/variants/1.png', '/variants/2.png', '/variants/3.png'];
 
 export function useVariant() {
   const [selectedVariant, setSelectedVariant] = useState(variants[0]);

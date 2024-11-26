@@ -7,6 +7,7 @@ interface VariantLayerProps {
   transform: VariantTransform;
   onMouseDown: (e: React.MouseEvent) => void;
   onLoad?: () => void;
+  onTouchStart: (e: React.TouchEvent) => void;
 }
 
 export function VariantLayer({
@@ -15,6 +16,7 @@ export function VariantLayer({
   transform,
   onMouseDown,
   onLoad,
+  onTouchStart,
 }: VariantLayerProps) {
   useEffect(() => {
     // Preload the image when variant changes
@@ -37,6 +39,7 @@ export function VariantLayer({
         left: `${position.x}px`,
         top: `${position.y}px`,
         userSelect: 'none',
+        touchAction: 'none',
         transform: `
           rotate(${transform.rotation}deg)
           scale(${transform.scale * (transform.flipX ? -1 : 1)}, 
@@ -46,6 +49,7 @@ export function VariantLayer({
       }}
       onLoad={onLoad}
       onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       draggable={false}
     />
   );
