@@ -34,6 +34,7 @@ export default function Home() {
   const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
   const [isVariantLoaded, setIsVariantLoaded] = useState(true);
+  const [bgOpacity, setBgOpacity] = useState(1);
 
   const textBoxState = useTextBoxes();
   const variantState = useVariant();
@@ -61,24 +62,28 @@ export default function Home() {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       
-      const activeTextBox = textBoxState.textBoxes.find(t => t.id === textBoxState.activeTextId);
-      if (!activeTextBox) return;
-
-      // Calculate new position
-      let newX = clientX - textDragStart.x;
-      let newY = clientY - textDragStart.y;
+      // Get the canvas element and its bounds
+      const canvasElement = canvasRef.current?.querySelector('.canvas-content');
+      if (!canvasElement) return;
       
-      // Calculate text bounds based on font size and scale
-      const textSize = activeTextBox.style.fontSize * activeTextBox.style.scale;
-      const textWidth = activeTextBox.message.length * (textSize * 0.6); // Approximate width
-      const textHeight = textSize;
+      const canvasRect = canvasElement.getBoundingClientRect();
+
+      // Calculate new position relative to canvas
+      const newX = clientX - canvasRect.left - textDragStart.x;
+      const newY = clientY - canvasRect.top - textDragStart.y;
+
+      // Get text element bounds
+      const textElement = document.querySelector(`[data-text-id="${textBoxState.activeTextId}"]`);
+      if (!textElement) return;
+      
+      const textRect = textElement.getBoundingClientRect();
       
       // Bound checking for text
-      newX = Math.max(0, Math.min(CANVAS_SIZE - textWidth, newX));
-      newY = Math.max(0, Math.min(CANVAS_SIZE - textHeight, newY));
+      const boundedX = Math.max(0, Math.min(canvasRect.width - textRect.width, newX));
+      const boundedY = Math.max(0, Math.min(canvasRect.height - textRect.height, newY));
       
       textBoxState.updateTextBox(textBoxState.activeTextId, {
-        position: { x: newX, y: newY }
+        position: { x: boundedX, y: boundedY }
       });
     }
   };
@@ -102,13 +107,21 @@ export default function Home() {
     textBoxState.setActiveTextId(id);
     setIsTextDragging(true);
     
+    // Get the canvas element and its bounds
+    const canvasElement = canvasRef.current?.querySelector('.canvas-content');
+    if (!canvasElement) return;
+    
+    const canvasRect = canvasElement.getBoundingClientRect();
+    
+    // Get the text element and its position
     const textBox = textBoxState.textBoxes.find(t => t.id === id);
-    if (textBox) {
-      setTextDragStart({
-        x: e.clientX - textBox.position.x,
-        y: e.clientY - textBox.position.y
-      });
-    }
+    if (!textBox) return;
+
+    // Calculate the offset from the mouse position to the text element's top-left corner
+    setTextDragStart({
+      x: e.clientX - canvasRect.left - textBox.position.x,
+      y: e.clientY - canvasRect.top - textBox.position.y
+    });
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -144,7 +157,7 @@ export default function Home() {
         canvas.height = outputSize;
 
         // Draw background
-        await drawBackground(ctx, canvas, bgType, bgColor, secondaryBgColor, bgImage);
+        await drawBackground(ctx, canvas, bgType, bgColor, secondaryBgColor, bgImage, bgOpacity);
 
         // Draw variant
         await drawVariant(ctx, canvas, variantState);
@@ -171,8 +184,10 @@ export default function Home() {
     bgType: BackgroundType,
     bgColor: string,
     secondaryBgColor: string,
-    bgImage: string | null
+    bgImage: string | null,
+    bgOpacity: number
   ) => {
+    // First draw the base background
     if (bgType === 'solid') {
       ctx.fillStyle = bgColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -184,8 +199,13 @@ export default function Home() {
       gradient.addColorStop(1, secondaryBgColor);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } 
+    }
     else if (bgType === 'image' && bgImage) {
+      // First draw solid background color
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Then draw image with opacity
       const img = await loadImage(bgImage);
       
       // Calculate dimensions to maintain aspect ratio
@@ -197,23 +217,25 @@ export default function Home() {
       let offsetX = 0;
       let offsetY = 0;
 
-      // If image is wider than canvas
       if (imgAspectRatio > canvasAspectRatio) {
         drawHeight = canvas.width / imgAspectRatio;
         offsetY = (canvas.height - drawHeight) / 2;
-      } 
-      // If image is taller than canvas
-      else {
+      } else {
         drawWidth = canvas.height * imgAspectRatio;
         offsetX = (canvas.width - drawWidth) / 2;
       }
 
-      // Fill background with black to handle transparent images
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Save the current context state
+      ctx.save();
       
-      // Draw image maintaining aspect ratio
+      // Set global alpha for the image
+      ctx.globalAlpha = bgOpacity;
+      
+      // Draw image with opacity
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      
+      // Restore the context state
+      ctx.restore();
     }
   };
 
@@ -259,7 +281,7 @@ export default function Home() {
     canvas: HTMLCanvasElement,
     textBoxes: TextBox[]
   ) => {
-    const scaleFactor = canvas.width / 500; // 500 is the base canvas size in the UI
+    const scaleFactor = canvas.width / 500;
 
     textBoxes.forEach((textBox) => {
       ctx.save();
@@ -268,39 +290,96 @@ export default function Home() {
       const scaledTextX = textBox.position.x * scaleFactor;
       const scaledTextY = textBox.position.y * scaleFactor;
       const scaledFontSize = textBox.style.fontSize * scaleFactor;
+      const scaledPadding = 16 * scaleFactor; // Add padding scaling
       
       // Set the font first so we can measure the text
       ctx.font = `${scaledFontSize}px ${getFontFamilyForDownload(textBox.style.fontFamily)}`;
       
-      // Measure text dimensions
-      const metrics = ctx.measureText(textBox.message);
-      const textWidth = metrics.width;
-      const textHeight = scaledFontSize;
+      // Maximum width for text wrapping (300px scaled)
+      const maxWidth = 300 * scaleFactor;
+
+      // Split text into paragraphs (explicit line breaks)
+      const paragraphs = textBox.message.split('\n').map(line => line || ' ');
       
-      // Calculate the center point of the text
-      const centerX = scaledTextX + (textWidth / 2);
-      const centerY = scaledTextY + (textHeight / 2);
+      // Word wrap each paragraph
+      const wrappedLines: string[] = [];
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(' ');
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+          const word = words[i];
+          const width = ctx.measureText(currentLine + ' ' + word).width;
+          if (width < maxWidth) {
+            currentLine += ' ' + word;
+          } else {
+            wrappedLines.push(currentLine);
+            currentLine = word;
+          }
+        }
+        wrappedLines.push(currentLine);
+      });
       
-      // Move to the center point
-      ctx.translate(centerX, centerY);
+      // Calculate dimensions for background
+      const lineHeight = scaledFontSize * 1.2;
+      const totalHeight = lineHeight * wrappedLines.length;
       
-      // Apply rotation
+      // Calculate maximum line width
+      let maxLineWidth = 0;
+      wrappedLines.forEach(line => {
+        const width = ctx.measureText(line).width;
+        maxLineWidth = Math.max(maxLineWidth, width);
+      });
+
+      // Calculate bounds
+      const boundedX = Math.min(scaledTextX, canvas.width - maxWidth/2);
+      const boundedY = Math.min(scaledTextY, canvas.height - totalHeight/2);
+      
+      // Move to position and apply transformations
+      ctx.translate(boundedX, boundedY);
       ctx.rotate((textBox.style.rotation * Math.PI) / 180);
-      
-      // Apply scale and flip
       ctx.scale(
         textBox.style.scale * (textBox.style.flipX ? -1 : 1),
         textBox.style.scale * (textBox.style.flipY ? -1 : 1)
       );
+
+      // Draw background
+      const hexToRgb = (hex: string) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : null;
+      };
+
+      const bgRgb = hexToRgb(textBox.style.backgroundColor || '#000000');
+      if (bgRgb) {
+        ctx.fillStyle = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${textBox.style.backgroundOpacity || 1})`;
+        ctx.roundRect(
+          -scaledPadding,
+          -scaledPadding,
+          maxLineWidth + (scaledPadding * 2),
+          totalHeight + (scaledPadding * 2),
+          8 * scaleFactor // border radius
+        );
+        ctx.fill();
+      }
       
-      // Set other text properties
-      ctx.fillStyle = textBox.style.color;
+      // Set text properties
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.lineWidth = scaledFontSize * 0.05;
+      ctx.strokeStyle = '#000000';
+      ctx.lineJoin = 'round';
       ctx.globalAlpha = textBox.style.opacity;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
       
-      // Draw the text at the origin (0, 0) since we've translated to the center
-      ctx.fillText(textBox.message, 0, 0);
+      // Draw text
+      wrappedLines.forEach((line, index) => {
+        const y = index * lineHeight;
+        ctx.fillStyle = textBox.style.color;
+        ctx.fillText(line, 0, y);
+      });
       
       ctx.restore();
     });
@@ -373,9 +452,73 @@ export default function Home() {
     }
   };
 
+  const handleReset = () => {
+    // Reset all states to their default values
+    setBgColor('#295144');
+    setBgType('solid');
+    setSecondaryBgColor('#1a3830');
+    setBgImage(null);
+    setActiveTab('background');
+    
+    // Reset variant states
+    variantState.setSelectedVariant('/variants/1.png'); // Reset to first variant
+    setVariantPosition({ x: 140, y: 120 }); // Reset to initial position
+    variantState.setVariantTransform({
+      rotation: 0,
+      scale: 1,
+      flipX: false,
+      flipY: false,
+      opacity: 1
+    });
+    
+    // Reset text states
+    textBoxState.setTextBoxes([]);
+    textBoxState.setActiveTextId(null);
+  };
+
   useEffect(() => {
     setIsVariantLoaded(false);
   }, [variantState.selectedVariant]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // Don't handle clicks if dragging is in progress
+      if (isDragging || isTextDragging) {
+        return;
+      }
+
+      // Get the canvas element
+      const canvasElement = canvasRef.current;
+      
+      // Get the active text element if any
+      const activeTextElement = document.querySelector(`[data-text-id="${textBoxState.activeTextId}"]`);
+      
+      // Check if the click is on a text control or delete button
+      const isTextControl = (e.target as HTMLElement).closest('.text-controls');
+      const isDeleteButton = (e.target as HTMLElement).closest('[data-delete-button]');
+      
+      // Don't unfocus if clicking on text controls or delete button
+      if (isTextControl || isDeleteButton) {
+        return;
+      }
+      
+      // Check if click is outside both canvas and active text
+      const isOutsideCanvas = canvasElement && !canvasElement.contains(e.target as Node);
+      const isOutsideText = activeTextElement && !activeTextElement.contains(e.target as Node);
+      
+      if (isOutsideCanvas || isOutsideText) {
+        textBoxState.setActiveTextId(null);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [textBoxState.activeTextId, isDragging, isTextDragging]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -399,6 +542,8 @@ export default function Home() {
             isDownloading={isDownloading}
             ref={canvasRef}
             onVariantLoad={() => setIsVariantLoaded(true)}
+            deleteTextBox={textBoxState.deleteTextBox}
+            bgOpacity={bgOpacity}
           />
         </div>
 
@@ -417,6 +562,9 @@ export default function Home() {
             {...textBoxState}
             {...variantState}
             onDownload={handleDownload}
+            onReset={handleReset}
+            bgOpacity={bgOpacity}
+            setBgOpacity={setBgOpacity}
           />
           
           <div className="hidden lg:block lg:flex-1">
@@ -436,6 +584,8 @@ export default function Home() {
               isDownloading={isDownloading}
               ref={canvasRef}
               onVariantLoad={() => setIsVariantLoaded(true)}
+              deleteTextBox={textBoxState.deleteTextBox}
+              bgOpacity={bgOpacity}
             />
           </div>
         </div>

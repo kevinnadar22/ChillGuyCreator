@@ -196,3 +196,29 @@ select option {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 } 
+
+/* Add these styles for drag interactions */
+.dragging {
+  cursor: grabbing !important;
+  outline: 2px solid #3b82f6; /* blue-500 */
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); /* blue-500 with opacity */
+}
+
+.cursor-move {
+  cursor: move;
+  cursor: grab;
+}
+
+.cursor-move:active {
+  cursor: grabbing;
+}
+
+.scale-102 {
+  transform: scale(1.02);
+}
+
+.text-box {
+  --bg-color-rgb: 255, 255, 255;  /* Default white background */
+  background-color: rgba(var(--bg-color-rgb), var(--bg-opacity)) !important;
+} 

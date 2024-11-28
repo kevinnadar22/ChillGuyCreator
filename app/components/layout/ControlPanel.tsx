@@ -1,5 +1,5 @@
 import { BackgroundType, TabType } from '@/app/types';
-import { Download } from 'lucide-react';
+import { Download, RotateCcw } from 'lucide-react';
 import { BackgroundControls } from '../controls/BackgroundControls';
 import { TextControls } from '../controls/TextControls';
 import { VariantControls } from '../controls/VariantControls';
@@ -45,13 +45,22 @@ export function ControlPanel(props: ControlPanelProps) {
       </div>
 
       <div className="sticky bottom-0 z-10 p-3 border-t border-gray-200 bg-white">
-        <button
-          onClick={props.onDownload}
-          className="action-button w-full h-12"
-        >
-          <Download size={18} />
-          Download
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={props.onReset}
+            className="px-4 py-3 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            title="Reset all settings"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
+            onClick={props.onDownload}
+            className="action-button flex-1 h-12"
+          >
+            <Download size={18} />
+            Download
+          </button>
+        </div>
       </div>
     </div>
   );

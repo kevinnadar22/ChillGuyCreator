@@ -26,7 +26,7 @@ export function TextControls({
   updateTextBox,
 }: TextControlsProps) {
   return (
-    <div>
+    <div className="text-controls">
       <button
         onClick={addTextBox}
         className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 mb-4"
@@ -41,6 +41,11 @@ export function TextControls({
             ([_, font]) => font.style.fontFamily === textBox.style.fontFamily
           )?.[0] || 'roboto';
 
+          const textPreview = textBox.message
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim() || 'New Text';
+
           return (
             <div 
               key={textBox.id}
@@ -50,21 +55,21 @@ export function TextControls({
             >
               <div className="flex items-center justify-between p-3">
                 <button
-                  className="flex-1 flex items-center justify-between"
+                  className="flex-1 flex items-center justify-between min-w-0"
                   onClick={() => setActiveTextId(textBox.id === activeTextId ? null : textBox.id)}
                 >
-                  <span className="text-sm font-medium truncate">
-                    {textBox.message || 'New Text'}
+                  <span className="text-sm font-medium truncate min-w-0 max-w-[180px]">
+                    {textPreview}
                   </span>
                   {activeTextId === textBox.id ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                    <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0 ml-2" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                    <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0 ml-2" />
                   )}
                 </button>
                 <button
                   onClick={() => deleteTextBox(textBox.id)}
-                  className="ml-2 p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  className="ml-2 p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -78,11 +83,11 @@ export function TextControls({
                 <div className="p-3 pt-0 border-t space-y-4">
                   <div>
                     <label className="text-sm text-gray-600">Text Content</label>
-                    <input
-                      type="text"
+                    <textarea
                       value={textBox.message}
                       onChange={(e) => updateTextBox(textBox.id, { message: e.target.value })}
-                      className="w-full mt-1 input-style"
+                      className="w-full mt-1 input-style min-h-[80px] resize-y"
+                      placeholder="Enter your text here..."
                     />
                   </div>
 
@@ -115,6 +120,16 @@ export function TextControls({
                     onChange={(color) =>
                       updateTextBox(textBox.id, {
                         style: { ...textBox.style, color },
+                      })
+                    }
+                  />
+
+                  <ColorPicker
+                    label="Background Color"
+                    value={textBox.style.backgroundColor || '#000000'}
+                    onChange={(color) =>
+                      updateTextBox(textBox.id, {
+                        style: { ...textBox.style, backgroundColor: color },
                       })
                     }
                   />
@@ -169,6 +184,19 @@ export function TextControls({
                     max={1}
                     step={0.1}
                   />
+
+                  <RangeInput
+                    label="Background Opacity"
+                    value={textBox.style.backgroundOpacity ?? 1}
+                    onChange={(opacity) =>
+                        updateTextBox(textBox.id, {
+                          style: { ...textBox.style, backgroundOpacity: opacity === 0 ? 0 : opacity || 1 }
+                        })
+                      }
+                      min={0}
+                      max={1}
+                      step={0.1}
+                    />
 
                   <div className="flex gap-2">
                     <button

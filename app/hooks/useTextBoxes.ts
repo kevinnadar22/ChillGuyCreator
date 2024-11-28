@@ -39,6 +39,8 @@ export function useTextBoxes() {
         opacity: 1,
         flipX: false,
         flipY: false,
+        backgroundColor: '#000000',
+        backgroundOpacity: 1,
       },
     };
     setTextBoxes([...textBoxes, newText]);
@@ -60,6 +62,7 @@ export function useTextBoxes() {
 
   return {
     textBoxes,
+    setTextBoxes,
     activeTextId,
     selectedFont,
     setActiveTextId,

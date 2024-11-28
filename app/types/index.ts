@@ -11,6 +11,8 @@ export type TextBox = {
     opacity: number;
     flipX: boolean;
     flipY: boolean;
+    backgroundColor: string;
+    backgroundOpacity: number;
   };
 };
 

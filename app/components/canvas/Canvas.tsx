@@ -19,6 +19,10 @@ interface CanvasProps {
   onTextMouseDown: (e: React.MouseEvent, id: string) => void;
   onCanvasClick: (e: React.MouseEvent) => void;
   onVariantLoad?: () => void;
+  isDragging?: boolean;
+  isTextDragging?: boolean;
+  deleteTextBox: (id: string) => void;
+  bgOpacity: number;
 }
 
 export const Canvas = forwardRef(({
@@ -38,7 +42,16 @@ export const Canvas = forwardRef(({
   onCanvasClick,
   onVariantLoad,
   isDownloading = false,
-}: CanvasProps & { isDownloading?: boolean }, ref: ForwardedRef<HTMLDivElement>) => {
+  isDragging,
+  isTextDragging,
+  deleteTextBox,
+  bgOpacity,
+}: CanvasProps & { 
+  isDownloading?: boolean,
+  isDragging?: boolean,
+  isTextDragging?: boolean,
+  deleteTextBox: (id: string) => void,
+}, ref: ForwardedRef<HTMLDivElement>) => {
   const getBackgroundStyle = () => {
     const baseStyle = {
       backgroundRepeat: 'no-repeat',
@@ -63,7 +76,7 @@ export const Canvas = forwardRef(({
     }
     return {
       ...baseStyle,
-      backgroundColor: bgColor,
+      backgroundColor: bgColor || '#ffffff',
     };
   };
 
@@ -113,9 +126,34 @@ export const Canvas = forwardRef(({
           onMouseLeave={onMouseUp}
         >
           <div 
+            className="absolute inset-0"
+            style={{ backgroundColor: bgColor }}
+          />
+          
+          {bgType === 'image' && bgImage ? (
+            <>
+              <div 
+                className="absolute inset-0"
+                style={{ backgroundColor: bgColor }}
+              />
+              <div 
+                className="absolute inset-0"
+                style={{
+                  ...getBackgroundStyle(),
+                  opacity: bgOpacity,
+                }}
+              />
+            </>
+          ) : (
+            <div 
+              className="absolute inset-0"
+              style={getBackgroundStyle()}
+            />
+          )}
+          
+          <div 
             className="canvas-content relative h-full w-full"
             style={{
-              ...getBackgroundStyle(),
               transform: 'translateZ(0)',
               touchAction: 'none',
             }}
@@ -128,6 +166,7 @@ export const Canvas = forwardRef(({
               onMouseDown={onVariantMouseDown}
               onTouchStart={handleVariantTouchStart}
               onLoad={onVariantLoad}
+              isDragging={isDragging}
             />
             <TextLayer
               textBoxes={textBoxes}
@@ -135,6 +174,8 @@ export const Canvas = forwardRef(({
               onTextMouseDown={onTextMouseDown}
               onTextTouchStart={handleTextTouchStart}
               isDownloading={isDownloading}
+              isDragging={isTextDragging}
+              onDeleteText={deleteTextBox}
             />
           </div>
         </div>

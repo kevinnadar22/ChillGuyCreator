@@ -1,4 +1,5 @@
 import { TextBox, VariantTransform, BackgroundType, TabType } from './index';
+import { Dispatch, SetStateAction } from 'react';
 
 export interface ControlPanelProps {
   activeTab: TabType;
@@ -11,7 +12,10 @@ export interface ControlPanelProps {
   setSecondaryBgColor: (color: string) => void;
   bgImage: string | null;
   setBgImage: (image: string | null) => void;
+  bgOpacity: number;
+  setBgOpacity: (opacity: number) => void;
   textBoxes: TextBox[];
+  setTextBoxes: Dispatch<SetStateAction<TextBox[]>>;
   activeTextId: string | null;
   selectedFont: string;
   setActiveTextId: (id: string | null) => void;
@@ -25,4 +29,5 @@ export interface ControlPanelProps {
   setSelectedVariant: (variant: string) => void;
   setVariantTransform: (transform: VariantTransform) => void;
   onDownload: () => void;
+  onReset: () => void;
 } 

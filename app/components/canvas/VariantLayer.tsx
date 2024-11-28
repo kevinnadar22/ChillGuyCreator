@@ -1,5 +1,5 @@
 import { VariantTransform } from '@/app/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface VariantLayerProps {
   selectedVariant: string;
@@ -8,6 +8,7 @@ interface VariantLayerProps {
   onMouseDown: (e: React.MouseEvent) => void;
   onLoad?: () => void;
   onTouchStart: (e: React.TouchEvent) => void;
+  isDragging?: boolean;
 }
 
 export function VariantLayer({
@@ -17,9 +18,9 @@ export function VariantLayer({
   onMouseDown,
   onLoad,
   onTouchStart,
+  isDragging = false,
 }: VariantLayerProps) {
   useEffect(() => {
-    // Preload the image when variant changes
     const img = new Image();
     img.src = selectedVariant;
     if (onLoad) {
@@ -31,7 +32,7 @@ export function VariantLayer({
     <img
       src={selectedVariant}
       alt="Character variant"
-      className="absolute cursor-move"
+      className={`absolute cursor-move ${isDragging ? 'dragging' : ''}`}
       style={{
         height: '50%',
         width: 'auto',
