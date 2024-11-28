@@ -23,9 +23,12 @@ interface CanvasProps {
   isTextDragging?: boolean;
   deleteTextBox: (id: string) => void;
   bgOpacity: number;
+  onTouchMove: (e: React.TouchEvent) => void;
+  onTouchEnd: () => void;
+  onTextTouchStart: (e: React.TouchEvent, id: string) => void;
 }
 
-export const Canvas = forwardRef(({
+export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
   bgType,
   bgColor,
   bgImage,
@@ -46,12 +49,10 @@ export const Canvas = forwardRef(({
   isTextDragging,
   deleteTextBox,
   bgOpacity,
-}: CanvasProps & { 
-  isDownloading?: boolean,
-  isDragging?: boolean,
-  isTextDragging?: boolean,
-  deleteTextBox: (id: string) => void,
-}, ref: ForwardedRef<HTMLDivElement>) => {
+  onTouchMove,
+  onTouchEnd,
+  onTextTouchStart,
+}: CanvasProps, ref) => {
   const getBackgroundStyle = () => {
     const baseStyle = {
       backgroundRepeat: 'no-repeat',
@@ -120,9 +121,9 @@ export const Canvas = forwardRef(({
           className="relative bg-transparent h-full w-full touch-none"
           style={{ contain: 'paint' }}
           onMouseMove={(e) => onMouseMove(e)}
-          onTouchMove={handleTouchMove}
+          onTouchMove={onTouchMove}
           onMouseUp={onMouseUp}
-          onTouchEnd={onMouseUp}
+          onTouchEnd={onTouchEnd}
           onMouseLeave={onMouseUp}
         >
           <div 
@@ -172,7 +173,7 @@ export const Canvas = forwardRef(({
               textBoxes={textBoxes}
               activeTextId={activeTextId}
               onTextMouseDown={onTextMouseDown}
-              onTextTouchStart={handleTextTouchStart}
+              onTextTouchStart={onTextTouchStart}
               isDownloading={isDownloading}
               isDragging={isTextDragging}
               onDeleteText={deleteTextBox}

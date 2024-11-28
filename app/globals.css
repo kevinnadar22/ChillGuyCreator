@@ -111,6 +111,10 @@ select option {
 @layer utilities {
   .canvas-wrapper {
     @apply relative w-full aspect-square max-w-[600px] mx-auto;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   
   .control-panel {
@@ -221,4 +225,8 @@ select option {
 .text-box {
   --bg-color-rgb: 255, 255, 255;  /* Default white background */
   background-color: rgba(var(--bg-color-rgb), var(--bg-opacity)) !important;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 } 

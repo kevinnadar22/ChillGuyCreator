@@ -124,6 +124,7 @@ export function TextLayer({
             }}
             onTouchStart={(e) => {
               if (!(e.target as HTMLElement).closest('[data-delete-button="true"]')) {
+                e.preventDefault();
                 onTextTouchStart(e, textBox.id);
               }
             }}

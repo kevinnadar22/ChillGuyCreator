@@ -62,25 +62,18 @@ export default function Home() {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       
-      // Get the canvas element and its bounds
       const canvasElement = canvasRef.current?.querySelector('.canvas-content');
       if (!canvasElement) return;
       
       const canvasRect = canvasElement.getBoundingClientRect();
-
+      
       // Calculate new position relative to canvas
-      const newX = clientX - canvasRect.left - textDragStart.x;
-      const newY = clientY - canvasRect.top - textDragStart.y;
+      const newX = clientX - canvasRect.left;
+      const newY = clientY - canvasRect.top;
 
-      // Get text element bounds
-      const textElement = document.querySelector(`[data-text-id="${textBoxState.activeTextId}"]`);
-      if (!textElement) return;
-      
-      const textRect = textElement.getBoundingClientRect();
-      
-      // Bound checking for text
-      const boundedX = Math.max(0, Math.min(canvasRect.width - textRect.width, newX));
-      const boundedY = Math.max(0, Math.min(canvasRect.height - textRect.height, newY));
+      // Update text position, ensuring it stays within canvas bounds
+      const boundedX = Math.max(0, Math.min(canvasRect.width, newX));
+      const boundedY = Math.max(0, Math.min(canvasRect.height, newY));
       
       textBoxState.updateTextBox(textBoxState.activeTextId, {
         position: { x: boundedX, y: boundedY }
@@ -102,25 +95,23 @@ export default function Home() {
     });
   };
 
-  const handleTextMouseDown = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
+  const handleTextTouchStart = (e: React.TouchEvent, id: string) => {
+    e.preventDefault(); // Prevent default touch behavior
     textBoxState.setActiveTextId(id);
     setIsTextDragging(true);
     
-    // Get the canvas element and its bounds
+    const touch = e.touches[0];
     const canvasElement = canvasRef.current?.querySelector('.canvas-content');
     if (!canvasElement) return;
     
     const canvasRect = canvasElement.getBoundingClientRect();
-    
-    // Get the text element and its position
     const textBox = textBoxState.textBoxes.find(t => t.id === id);
     if (!textBox) return;
 
-    // Calculate the offset from the mouse position to the text element's top-left corner
+    // Calculate the offset from the touch position to the text element's center
     setTextDragStart({
-      x: e.clientX - canvasRect.left - textBox.position.x,
-      y: e.clientY - canvasRect.top - textBox.position.y
+      x: touch.clientX - canvasRect.left - textBox.position.x,
+      y: touch.clientY - canvasRect.top - textBox.position.y
     });
   };
 
@@ -522,6 +513,17 @@ export default function Home() {
     };
   }, [textBoxState.activeTextId, isDragging, isTextDragging]);
 
+  // Add touch event handlers
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling while dragging
+    handleMouseMove(e);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setIsTextDragging(false);
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
@@ -536,7 +538,7 @@ export default function Home() {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onVariantMouseDown={handleVariantMouseDown}
-            onTextMouseDown={handleTextMouseDown}
+            onTextTouchStart={handleTextTouchStart}
             textBoxes={textBoxState.textBoxes}
             activeTextId={textBoxState.activeTextId}
             {...variantState}
@@ -546,6 +548,8 @@ export default function Home() {
             onVariantLoad={() => setIsVariantLoaded(true)}
             deleteTextBox={textBoxState.deleteTextBox}
             bgOpacity={bgOpacity}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           />
         </div>
 
@@ -578,7 +582,7 @@ export default function Home() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onVariantMouseDown={handleVariantMouseDown}
-              onTextMouseDown={handleTextMouseDown}
+              onTextTouchStart={handleTextTouchStart}
               textBoxes={textBoxState.textBoxes}
               activeTextId={textBoxState.activeTextId}
               {...variantState}
@@ -588,6 +592,8 @@ export default function Home() {
               onVariantLoad={() => setIsVariantLoaded(true)}
               deleteTextBox={textBoxState.deleteTextBox}
               bgOpacity={bgOpacity}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             />
           </div>
         </div>
