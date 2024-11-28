@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { TextBox } from '../types';
 import { fonts } from '../utils/fonts';
 
+const CANVAS_SIZE = 500;
+const PADDING = 60;
+const TOP_THIRD = CANVAS_SIZE / 3;
+
 export function useTextBoxes() {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [activeTextId, setActiveTextId] = useState<string | null>(null);
@@ -9,20 +13,15 @@ export function useTextBoxes() {
 
   const addTextBox = () => {
     const calculateNewPosition = () => {
-      const baseX = 50;
-      const baseY = 50;
-      const offsetX = 20;
-      const offsetY = 40;
+      const minX = PADDING;
+      const maxX = CANVAS_SIZE - PADDING;
+      const minY = PADDING;
+      const maxY = TOP_THIRD - PADDING;
       
-      if (textBoxes.length === 0) return { x: baseX, y: baseY };
+      const x = minX + Math.random() * (maxX - minX);
+      const y = minY + Math.random() * (maxY - minY);
       
-      const row = Math.floor(textBoxes.length / 3);
-      const col = textBoxes.length % 3;
-      
-      return {
-        x: baseX + (col * offsetX),
-        y: baseY + (row * offsetY)
-      };
+      return { x, y };
     };
 
     const position = calculateNewPosition();
@@ -48,16 +47,26 @@ export function useTextBoxes() {
   };
 
   const deleteTextBox = (id: string) => {
-    setTextBoxes(textBoxes.filter(text => text.id !== id));
+    setTextBoxes(textBoxes.filter((t) => t.id !== id));
     if (activeTextId === id) {
       setActiveTextId(null);
     }
   };
 
   const updateTextBox = (id: string, updates: Partial<TextBox>) => {
-    setTextBoxes(textBoxes.map(text => 
-      text.id === id ? { ...text, ...updates } : text
-    ));
+    setTextBoxes(
+      textBoxes.map((textBox) =>
+        textBox.id === id
+          ? {
+              ...textBox,
+              ...updates,
+              style: updates.style
+                ? { ...textBox.style, ...updates.style }
+                : textBox.style,
+            }
+          : textBox
+      )
+    );
   };
 
   return {

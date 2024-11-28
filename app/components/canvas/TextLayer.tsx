@@ -10,6 +10,7 @@ interface TextLayerProps {
   isDownloading?: boolean;
   isDragging?: boolean;
   onDeleteText: (id: string) => void;
+  onTextDragEnd?: (id: string, position: { x: number; y: number }) => void;
 }
 
 export function TextLayer({
@@ -20,6 +21,7 @@ export function TextLayer({
   isDownloading = false,
   isDragging = false,
   onDeleteText,
+  onTextDragEnd,
 }: TextLayerProps) {
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -34,22 +36,25 @@ export function TextLayer({
 
   const formatText = (text: string) => {
     return text.split('\n').map((line, i) => (
-      <div 
+      <span 
         key={i} 
         className="text-content-line"
         style={{
-          width: '100%',
+          display: 'inline-block',
+          width: 'auto',
+          minWidth: 'min-content',
           maxWidth: '300px',
           overflowWrap: 'break-word',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           lineHeight: 1.2,
           margin: 0,
-          padding: 0
+          padding: 0,
+          textAlign: 'left',
         }}
       >
         {line || '\u00A0'}
-      </div>
+      </span>
     ));
   };
 
@@ -88,35 +93,51 @@ export function TextLayer({
           outline: isActive ? '1px solid #3b82f6' : 'none',
           outlineOffset: '-1px',
           opacity: textBox.style.opacity,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
+          display: 'block',
           minWidth: 'min-content',
-          lineHeight: 1,
-          borderRadius: isActive ? '6px' : '0',
+          maxWidth: '300px',
+          width: 'fit-content',
+          whiteSpace: 'pre-wrap',
+          overflowWrap: 'break-word',
+          wordBreak: 'break-word',
+          textAlign: 'left',
+          direction: 'ltr',
+          pointerEvents: 'auto',
+          willChange: 'transform',
         };
 
-        const textStyle = {
+        const textStyle: React.CSSProperties = {
           color: textBox.style.color,
           fontSize: `${textBox.style.fontSize}px`,
           fontFamily: textBox.style.fontFamily,
           padding: '4px 8px',
           backgroundColor: `rgba(${bgRgbString}, ${textBox.style.backgroundOpacity ?? 0})`,
           maxWidth: '300px',
+          width: 'fit-content',
+          display: 'block',
+          whiteSpace: 'pre-wrap',
           overflowWrap: 'break-word' as const,
-          whiteSpace: 'pre-wrap' as const,
           wordBreak: 'break-word' as const,
           borderRadius: '4px',
           lineHeight: 1.2,
           margin: 0,
+          textAlign: 'left',
+          position: 'relative',
         };
 
         return (
           <div
             key={textBox.id}
             data-text-id={textBox.id}
-            style={containerStyle}
-            className={`text-box cursor-move ${isDragging ? 'dragging' : ''}`}
+            style={{
+              ...containerStyle,
+              touchAction: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              WebkitTouchCallout: 'none',
+              cursor: 'move',
+            }}
+            className={`text-box ${isDragging ? 'dragging' : ''}`}
             onMouseDown={(e) => {
               if (!(e.target as HTMLElement).closest('[data-delete-button="true"]')) {
                 onTextMouseDown(e, textBox.id);
@@ -124,16 +145,20 @@ export function TextLayer({
             }}
             onTouchStart={(e) => {
               if (!(e.target as HTMLElement).closest('[data-delete-button="true"]')) {
-                e.preventDefault();
                 onTextTouchStart(e, textBox.id);
               }
             }}
-            onClick={handleTextClick}
             draggable={false}
           >
             <div 
               className="text-content"
-              style={textStyle}
+              style={{
+                ...textStyle,
+                display: 'inline-block',
+                width: 'auto',
+                minWidth: 'min-content' as const,
+                textAlign: 'left',
+              }}
             >
               {formatText(textBox.message || 'Click to edit')}
             </div>

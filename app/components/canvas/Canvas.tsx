@@ -2,6 +2,7 @@ import { forwardRef, ForwardedRef } from 'react';
 import { TextLayer } from './TextLayer';
 import { VariantLayer } from './VariantLayer';
 import { BackgroundType, TextBox, VariantTransform } from '@/app/types';
+import { TouchLikeEvent } from '@/app/types/props';
 
 interface CanvasProps {
   bgType: BackgroundType;
@@ -13,12 +14,13 @@ interface CanvasProps {
   variantPosition: { x: number; y: number };
   selectedVariant: string;
   variantTransform: VariantTransform;
-  onMouseMove: (e: React.MouseEvent) => void;
+  onMouseMove: (e: TouchLikeEvent) => void;
   onMouseUp: () => void;
   onVariantMouseDown: (e: React.MouseEvent) => void;
   onTextMouseDown: (e: React.MouseEvent, id: string) => void;
   onCanvasClick: (e: React.MouseEvent) => void;
   onVariantLoad?: () => void;
+  isDownloading?: boolean;
   isDragging?: boolean;
   isTextDragging?: boolean;
   deleteTextBox: (id: string) => void;
@@ -82,14 +84,16 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling while dragging
+    e.preventDefault();
+    e.stopPropagation();
     const touch = e.touches[0];
     if (touch) {
       onMouseMove({
         clientX: touch.clientX,
         clientY: touch.clientY,
         preventDefault: () => {},
-      } as React.MouseEvent);
+        touches: Array.from(e.touches)
+      });
     }
   };
 
@@ -105,12 +109,8 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
 
   const handleTextTouchStart = (e: React.TouchEvent, id: string) => {
     e.preventDefault();
-    const touch = e.touches[0];
-    onTextMouseDown({
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      preventDefault: () => {},
-    } as React.MouseEvent, id);
+    e.stopPropagation();
+    onTextTouchStart(e, id);
   };
 
   return (
@@ -121,7 +121,7 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
           className="relative bg-transparent h-full w-full touch-none"
           style={{ contain: 'paint' }}
           onMouseMove={(e) => onMouseMove(e)}
-          onTouchMove={onTouchMove}
+          onTouchMove={handleTouchMove}
           onMouseUp={onMouseUp}
           onTouchEnd={onTouchEnd}
           onMouseLeave={onMouseUp}
@@ -157,6 +157,8 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
             style={{
               transform: 'translateZ(0)',
               touchAction: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
             onClick={onCanvasClick}
           >
@@ -173,7 +175,7 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(({
               textBoxes={textBoxes}
               activeTextId={activeTextId}
               onTextMouseDown={onTextMouseDown}
-              onTextTouchStart={onTextTouchStart}
+              onTextTouchStart={handleTextTouchStart}
               isDownloading={isDownloading}
               isDragging={isTextDragging}
               onDeleteText={deleteTextBox}

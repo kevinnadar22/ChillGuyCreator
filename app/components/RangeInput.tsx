@@ -1,6 +1,3 @@
-import { useState, useCallback, useEffect } from 'react';
-import { debounce } from '../utils/debounce';
-
 interface RangeInputProps {
   value: number;
   onChange: (value: number) => void;

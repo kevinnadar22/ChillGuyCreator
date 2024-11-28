@@ -29,14 +29,6 @@ export function Header() {
   return (
     <>
       <header className="w-full flex justify-between items-center p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col items-start sm:items-center">
-          <p className="text-zinc-700 text-sm font-mono digital-clock">
-            {currentTime}
-          </p>
-          <p className="text-zinc-500 text-xs mt-1">
-            {currentDate}
-          </p>
-        </div>
         <div className="flex gap-2.5">
           <a 
             href="https://github.com/kevinnadar22/ChillGuyCreator" 

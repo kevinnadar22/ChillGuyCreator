@@ -15,7 +15,15 @@ import { getFontFamilyForDownload } from '@/app/utils/fonts';
 interface TouchLikeEvent {
   clientX: number;
   clientY: number;
+  preventDefault: () => void;
   touches?: { clientX: number; clientY: number }[];
+}
+
+interface DragStart {
+  x: number;
+  y: number;
+  textInitialX?: number;
+  textInitialY?: number;
 }
 
 const CANVAS_SIZE = 500; // Base canvas size
@@ -31,7 +39,7 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isTextDragging, setIsTextDragging] = useState(false);
-  const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
+  const [textDragStart, setTextDragStart] = useState<DragStart>({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
   const [isVariantLoaded, setIsVariantLoaded] = useState(true);
   const [bgOpacity, setBgOpacity] = useState(1);
@@ -66,14 +74,24 @@ export default function Home() {
       if (!canvasElement) return;
       
       const canvasRect = canvasElement.getBoundingClientRect();
+      const scaleFactor = canvasRect.width / CANVAS_SIZE;
       
-      // Calculate new position relative to canvas
-      const newX = clientX - canvasRect.left;
-      const newY = clientY - canvasRect.top;
-
-      // Update text position, ensuring it stays within canvas bounds
-      const boundedX = Math.max(0, Math.min(canvasRect.width, newX));
-      const boundedY = Math.max(0, Math.min(canvasRect.height, newY));
+      // Calculate current position relative to canvas
+      const currentX = (clientX - canvasRect.left) / scaleFactor;
+      const currentY = (clientY - canvasRect.top) / scaleFactor;
+      
+      // Calculate the delta from the initial touch position
+      const deltaX = currentX - textDragStart.x;
+      const deltaY = currentY - textDragStart.y;
+      
+      // Update position using the initial position plus delta
+      const newX = (textDragStart.textInitialX ?? 0) + deltaX;
+      const newY = (textDragStart.textInitialY ?? 0) + deltaY;
+      
+      // Add padding to prevent text from going off canvas
+      const padding = 25;
+      const boundedX = Math.max(padding, Math.min(CANVAS_SIZE - padding, newX));
+      const boundedY = Math.max(padding, Math.min(CANVAS_SIZE - padding, newY));
       
       textBoxState.updateTextBox(textBoxState.activeTextId, {
         position: { x: boundedX, y: boundedY }
@@ -96,22 +114,26 @@ export default function Home() {
   };
 
   const handleTextTouchStart = (e: React.TouchEvent, id: string) => {
-    e.preventDefault(); // Prevent default touch behavior
+    e.preventDefault();
+    e.stopPropagation();
     textBoxState.setActiveTextId(id);
     setIsTextDragging(true);
     
     const touch = e.touches[0];
     const canvasElement = canvasRef.current?.querySelector('.canvas-content');
-    if (!canvasElement) return;
+    if (!canvasElement || !touch) return;
     
     const canvasRect = canvasElement.getBoundingClientRect();
+    const scaleFactor = canvasRect.width / CANVAS_SIZE;
+    
     const textBox = textBoxState.textBoxes.find(t => t.id === id);
     if (!textBox) return;
-
-    // Calculate the offset from the touch position to the text element's center
+    
     setTextDragStart({
-      x: touch.clientX - canvasRect.left - textBox.position.x,
-      y: touch.clientY - canvasRect.top - textBox.position.y
+      x: (touch.clientX - canvasRect.left),
+      y: (touch.clientY - canvasRect.top),
+      textInitialX: textBox.position.x,
+      textInitialY: textBox.position.y
     });
   };
 
@@ -515,13 +537,83 @@ export default function Home() {
 
   // Add touch event handlers
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling while dragging
-    handleMouseMove(e);
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const canvasElement = canvasRef.current?.querySelector('.canvas-content');
+    if (!canvasElement) return;
+    
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const scaleFactor = canvasRect.width / CANVAS_SIZE;
+    
+    if (isTextDragging && textBoxState.activeTextId && textDragStart) {
+      // Calculate position relative to canvas with proper scaling
+      const currentX = (touch.clientX - canvasRect.left) / scaleFactor;
+      const currentY = (touch.clientY - canvasRect.top) / scaleFactor;
+      
+      // Calculate the delta from the initial touch position
+      const deltaX = (currentX - textDragStart.x / scaleFactor);
+      const deltaY = (currentY - textDragStart.y / scaleFactor);
+      
+      // Update position using the initial position plus delta
+      const newX = (textDragStart.textInitialX ?? 0) + deltaX;
+      const newY = (textDragStart.textInitialY ?? 0) + deltaY;
+      
+      // Add padding and adjust bounds based on canvas size
+      const padding = CANVAS_SIZE * 0.05; // 5% of canvas size
+      const boundedX = Math.max(padding, Math.min(CANVAS_SIZE - padding, newX));
+      const boundedY = Math.max(padding, Math.min(CANVAS_SIZE - padding, newY));
+      
+      textBoxState.updateTextBox(textBoxState.activeTextId, {
+        position: { x: boundedX, y: boundedY }
+      });
+    }
+    
+    if (isDragging) {
+      // Handle variant dragging with proper scaling
+      const currentX = (touch.clientX - dragStart.x) / scaleFactor;
+      const currentY = (touch.clientY - dragStart.y) / scaleFactor;
+      
+      const boundedX = Math.max(0, Math.min(CANVAS_SIZE - VARIANT_SIZE, currentX));
+      const boundedY = Math.max(0, Math.min(CANVAS_SIZE - VARIANT_SIZE, currentY));
+      
+      setVariantPosition({ x: boundedX, y: boundedY });
+    }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     setIsTextDragging(false);
+    document.body.style.overflow = '';
+    setTextDragStart({
+      x: 0,
+      y: 0,
+      textInitialX: 0,
+      textInitialY: 0
+    });
+  };
+
+  const handleTextMouseDown = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    textBoxState.setActiveTextId(id);
+    setIsTextDragging(true);
+    
+    const canvasElement = canvasRef.current?.querySelector('.canvas-content');
+    if (!canvasElement) return;
+    
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const textBox = textBoxState.textBoxes.find(t => t.id === id);
+    if (!textBox) return;
+
+    setTextDragStart({
+      x: e.clientX - canvasRect.left,
+      y: e.clientY - canvasRect.top,
+      textInitialX: textBox.position.x,
+      textInitialY: textBox.position.y
+    });
   };
 
   return (
@@ -550,6 +642,8 @@ export default function Home() {
             bgOpacity={bgOpacity}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onTextMouseDown={handleTextMouseDown}
+            isTextDragging={isTextDragging}
           />
         </div>
 
@@ -594,6 +688,8 @@ export default function Home() {
               bgOpacity={bgOpacity}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              onTextMouseDown={handleTextMouseDown}
+              isTextDragging={isTextDragging}
             />
           </div>
         </div>

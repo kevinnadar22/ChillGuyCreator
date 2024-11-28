@@ -18,6 +18,7 @@ const fontFamilyMap: Record<string, string> = {
   [playfairFont.style.fontFamily]: 'Playfair Display, Georgia, serif',
   [markerFont.style.fontFamily]: 'Permanent Marker, Impact, sans-serif',
   [comicFont.style.fontFamily]: 'Comic Neue, Comic Sans MS, cursive',
+  
 };
 
 export const getFontFamilyForDownload = (fontFamily: string) => {
