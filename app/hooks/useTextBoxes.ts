@@ -40,7 +40,7 @@ export function useTextBoxes() {
         flipX: false,
         flipY: false,
         backgroundColor: '#000000',
-        backgroundOpacity: 1,
+        backgroundOpacity: 0,
       },
     };
     setTextBoxes([...textBoxes, newText]);

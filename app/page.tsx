@@ -281,27 +281,34 @@ export default function Home() {
     canvas: HTMLCanvasElement,
     textBoxes: TextBox[]
   ) => {
-    const scaleFactor = canvas.width / 500;
+    const scaleFactor = canvas.width / CANVAS_SIZE;
 
     textBoxes.forEach((textBox) => {
       ctx.save();
       
-      // Scale the position and font size
-      const scaledTextX = textBox.position.x * scaleFactor;
-      const scaledTextY = textBox.position.y * scaleFactor;
-      const scaledFontSize = textBox.style.fontSize * scaleFactor;
-      const scaledPadding = 16 * scaleFactor; // Add padding scaling
+      // Calculate the center point for transformations
+      const centerX = textBox.position.x * scaleFactor;
+      const centerY = textBox.position.y * scaleFactor;
+      
+      // Move to the text position
+      ctx.translate(centerX, centerY);
+      
+      // Apply transformations around the center point
+      ctx.rotate((textBox.style.rotation * Math.PI) / 180);
+      ctx.scale(
+        textBox.style.scale * (textBox.style.flipX ? -1 : 1),
+        textBox.style.scale * (textBox.style.flipY ? -1 : 1)
+      );
       
       // Set the font first so we can measure the text
+      const scaledFontSize = textBox.style.fontSize * scaleFactor;
       ctx.font = `${scaledFontSize}px ${getFontFamilyForDownload(textBox.style.fontFamily)}`;
       
       // Maximum width for text wrapping (300px scaled)
       const maxWidth = 300 * scaleFactor;
 
-      // Split text into paragraphs (explicit line breaks)
+      // Split text into paragraphs and wrap text
       const paragraphs = textBox.message.split('\n').map(line => line || ' ');
-      
-      // Word wrap each paragraph
       const wrappedLines: string[] = [];
       paragraphs.forEach(paragraph => {
         const words = paragraph.split(' ');
@@ -331,19 +338,14 @@ export default function Home() {
         maxLineWidth = Math.max(maxLineWidth, width);
       });
 
-      // Calculate bounds
-      const boundedX = Math.min(scaledTextX, canvas.width - maxWidth/2);
-      const boundedY = Math.min(scaledTextY, canvas.height - totalHeight/2);
+      // Draw background with proper centering
+      const scaledPadding = 16 * scaleFactor;
+      const bgWidth = maxLineWidth + (scaledPadding * 2);
+      const bgHeight = totalHeight + (scaledPadding * 2);
       
-      // Move to position and apply transformations
-      ctx.translate(boundedX, boundedY);
-      ctx.rotate((textBox.style.rotation * Math.PI) / 180);
-      ctx.scale(
-        textBox.style.scale * (textBox.style.flipX ? -1 : 1),
-        textBox.style.scale * (textBox.style.flipY ? -1 : 1)
-      );
+      const bgX = -bgWidth / 2;
+      const bgY = -bgHeight / 2;
 
-      // Draw background
       const hexToRgb = (hex: string) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -355,28 +357,28 @@ export default function Home() {
 
       const bgRgb = hexToRgb(textBox.style.backgroundColor || '#000000');
       if (bgRgb) {
-        ctx.fillStyle = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${textBox.style.backgroundOpacity || 1})`;
+        ctx.fillStyle = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${textBox.style.backgroundOpacity || 0})`;
         ctx.roundRect(
-          -scaledPadding,
-          -scaledPadding,
-          maxLineWidth + (scaledPadding * 2),
-          totalHeight + (scaledPadding * 2),
+          bgX,
+          bgY,
+          bgWidth,
+          bgHeight,
           8 * scaleFactor // border radius
         );
         ctx.fill();
       }
-      
+
       // Set text properties
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.lineWidth = scaledFontSize * 0.05;
       ctx.strokeStyle = '#000000';
       ctx.lineJoin = 'round';
       ctx.globalAlpha = textBox.style.opacity;
       
-      // Draw text
+      // Draw text with proper centering
       wrappedLines.forEach((line, index) => {
-        const y = index * lineHeight;
+        const y = (index - (wrappedLines.length - 1) / 2) * lineHeight;
         ctx.fillStyle = textBox.style.color;
         ctx.fillText(line, 0, y);
       });

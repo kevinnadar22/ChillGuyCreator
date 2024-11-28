@@ -75,10 +75,12 @@ export function TextLayer({
           left: `${textBox.position.x}px`,
           top: `${textBox.position.y}px`,
           transform: `
+            translate(-50%, -50%)
             rotate(${textBox.style.rotation}deg)
             scale(${textBox.style.scale * (textBox.style.flipX ? -1 : 1)}, 
                   ${textBox.style.scale * (textBox.style.flipY ? -1 : 1)})
           `,
+          transformOrigin: 'center center',
           touchAction: 'none',
           userSelect: 'none',
           cursor: 'move',
@@ -86,8 +88,12 @@ export function TextLayer({
           outline: isActive ? '1px solid #3b82f6' : 'none',
           outlineOffset: '-1px',
           opacity: textBox.style.opacity,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
           minWidth: 'min-content',
           lineHeight: 1,
+          borderRadius: isActive ? '6px' : '0',
         };
 
         const textStyle = {
